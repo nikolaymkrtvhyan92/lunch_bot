@@ -190,6 +190,8 @@ async def vote_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def results_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Команда /results - показать результаты голосования"""
+    user_id = update.effective_user.id
+    
     poll = db.get_active_poll()
     
     if not poll:
@@ -227,15 +229,19 @@ async def results_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     result_text += f"👥 Участников обеда: {len(participants)}\n"
     
-    # Добавляем меню победителя
-    if winner_id:
-        winner = db.get_restaurant(winner_id)
-        menu_items = db.get_restaurant_menu(winner_id)
+    # Получаем голос текущего пользователя
+    user_vote_id = db.get_user_vote(poll_id, user_id)
+    
+    # Показываем меню ресторана, за который проголосовал ЭТОТ пользователь
+    if user_vote_id:
+        user_restaurant = db.get_restaurant(user_vote_id)
+        menu_items = db.get_restaurant_menu(user_vote_id)
         
-        if menu_items:
-            winner_emoji = winner.get('emoji', '🍽️')
+        if user_restaurant and menu_items:
+            rest_emoji = user_restaurant.get('emoji', '🍽️')
             result_text += f"\n━━━━━━━━━━━━━━━━━━"
-            result_text += f"\n🍽️ <b>Меню {winner_emoji} {winner['name']}</b>\n\n"
+            result_text += f"\n🍽️ <b>Меню {rest_emoji} {user_restaurant['name']}</b>\n"
+            result_text += f"<i>(ваш выбор)</i>\n\n"
             
             # Группируем по категориям
             categories = {}
@@ -260,6 +266,8 @@ async def show_results_callback(update: Update, context: ContextTypes.DEFAULT_TY
     """Показать результаты через callback"""
     query = update.callback_query
     await query.answer()
+    
+    user_id = update.effective_user.id
     
     poll = db.get_active_poll()
     
@@ -306,15 +314,19 @@ async def show_results_callback(update: Update, context: ContextTypes.DEFAULT_TY
     
     result_text += f"\n👥 Участников: {len(participants)}"
     
-    # Добавляем меню победителя
-    if winner_id:
-        winner = db.get_restaurant(winner_id)
-        menu_items = db.get_restaurant_menu(winner_id)
+    # Получаем голос текущего пользователя
+    user_vote_id = db.get_user_vote(poll_id, user_id)
+    
+    # Показываем меню ресторана, за который проголосовал ЭТОТ пользователь
+    if user_vote_id:
+        user_restaurant = db.get_restaurant(user_vote_id)
+        menu_items = db.get_restaurant_menu(user_vote_id)
         
-        if menu_items:
-            winner_emoji = winner.get('emoji', '🍽️')
+        if user_restaurant and menu_items:
+            rest_emoji = user_restaurant.get('emoji', '🍽️')
             result_text += f"\n\n━━━━━━━━━━━━━━━━━━"
-            result_text += f"\n🍽️ <b>Меню {winner_emoji} {winner['name']}</b>\n\n"
+            result_text += f"\n🍽️ <b>Меню {rest_emoji} {user_restaurant['name']}</b>\n"
+            result_text += f"<i>(ваш выбор)</i>\n\n"
             
             # Группируем по категориям
             categories = {}
