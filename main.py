@@ -48,6 +48,7 @@ from admin_handlers import (
     restaurant_desc,
     restaurant_address,
     restaurant_phone,
+    restaurant_emoji,
     list_restaurants_command,
     add_menu_command,
     menu_restaurant_selected,
@@ -62,6 +63,7 @@ from admin_handlers import (
     RESTAURANT_DESC,
     RESTAURANT_ADDRESS,
     RESTAURANT_PHONE,
+    RESTAURANT_EMOJI,
     MENU_RESTAURANT,
     MENU_ITEM_NAME,
     MENU_ITEM_PRICE,
@@ -116,6 +118,7 @@ def main():
             RESTAURANT_DESC: [MessageHandler(filters.TEXT, restaurant_desc)],
             RESTAURANT_ADDRESS: [MessageHandler(filters.TEXT, restaurant_address)],
             RESTAURANT_PHONE: [MessageHandler(filters.TEXT, restaurant_phone)],
+            RESTAURANT_EMOJI: [MessageHandler(filters.TEXT, restaurant_emoji)],
         },
         fallbacks=[CommandHandler("cancel", cancel_admin)],
     )

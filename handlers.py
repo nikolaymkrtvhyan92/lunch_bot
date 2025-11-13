@@ -26,24 +26,25 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     welcome_text = f"""
 Привет, {user.first_name}! 👋
 
-Я бот для организации совместных обедов в вашей компании.
+Я помогу организовать совместный обед для вашей команды! 🍽️✨
 
-📋 Доступные команды:
+<b>🎯 Что я умею:</b>
+• Голосование за рестораны
+• Показываю меню с ценами  
+• Веду список участников
+• Отправляю напоминания
 
-👥 <b>Для всех пользователей:</b>
-/lunch - Начать голосование за ресторан
-/menu - Посмотреть меню ресторана
-/join - Записаться на обед
-/participants - Посмотреть список участников
+<b>🚀 Начнём?</b>
+Используй /lunch чтобы выбрать ресторан!
+
+<b>📋 Все команды:</b>
+/lunch - Голосование за ресторан
+/menu - Меню ресторанов
+/participants - Кто идёт на обед
 /results - Результаты голосования
+/help - Подробная справка
 
-👑 <b>Для администраторов:</b>
-/admin - Панель администратора
-/add_restaurant - Добавить ресторан
-/list_restaurants - Список ресторанов
-/add_menu - Добавить блюдо в меню
-
-Приятного аппетита! 🍽️
+Приятного аппетита! 😋
 """
     
     await update.message.reply_text(welcome_text, parse_mode='HTML')
@@ -102,21 +103,22 @@ async def lunch_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Создаем клавиатуру с ресторанами
     keyboard = []
     for restaurant in restaurants:
+        # Используем emoji из базы данных (или дефолтный если нет)
+        emoji = restaurant.get('emoji', '🍽️')
         keyboard.append([
             InlineKeyboardButton(
-                f"🍽️ {restaurant['name']}", 
+                f"{emoji} {restaurant['name']}", 
                 callback_data=f"vote_{restaurant['id']}"
             )
         ])
     
-    # Добавляем кнопки управления
+    # Добавляем кнопки управления (улучшенный порядок)
     keyboard.append([
-        InlineKeyboardButton("📊 Результаты", callback_data="show_results"),
-        InlineKeyboardButton("👥 Участники", callback_data="show_participants")
+        InlineKeyboardButton("👥 Участники", callback_data="show_participants"),
+        InlineKeyboardButton("📊 Результаты", callback_data="show_results")
     ])
     keyboard.append([
-        InlineKeyboardButton("📋 Меню ресторанов", callback_data="show_menu_list"),
-        InlineKeyboardButton("🛒 Мой заказ", callback_data="my_orders")
+        InlineKeyboardButton("📋 Меню ресторанов", callback_data="show_menu_list")
     ])
     
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -127,11 +129,12 @@ async def lunch_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_vote:
         restaurant = db.get_restaurant(user_vote)
         if restaurant:
-            vote_text = f"\n\n✅ Ваш выбор: {restaurant['name']}"
+            rest_emoji = restaurant.get('emoji', '🍽️')
+            vote_text = f"\n\n✅ Ваш выбор: {rest_emoji} <b>{restaurant['name']}</b>"
     
     await update.message.reply_text(
-        f"🗳️ <b>Голосование за ресторан</b>\n\n"
-        f"Выберите ресторан для сегодняшнего обеда:{vote_text}",
+        f"🍽️ <b>Время выбирать обед!</b>\n\n"
+        f"Куда пойдём сегодня? Голосуйте! 🎯{vote_text}",
         reply_markup=reply_markup,
         parse_mode='HTML'
     )
@@ -165,17 +168,21 @@ async def vote_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # Получаем информацию о ресторане
     restaurant = db.get_restaurant(restaurant_id)
+    rest_emoji = restaurant.get('emoji', '🍽️')
     
     # Добавляем кнопки для перехода к результатам или возврата к голосованию
     keyboard = [
-        [InlineKeyboardButton("📊 Результаты", callback_data="show_results")],
+        [
+            InlineKeyboardButton("📊 Результаты", callback_data="show_results"),
+            InlineKeyboardButton("👥 Участники", callback_data="show_participants")
+        ],
         [InlineKeyboardButton("🏠 К голосованию", callback_data="back_to_voting")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     await query.edit_message_text(
-        f"✅ Вы проголосовали за <b>{restaurant['name']}</b>\n"
-        f"Вы записаны на обед! 🍽️",
+        f"✅ Отлично! Вы выбрали {rest_emoji} <b>{restaurant['name']}</b>\n\n"
+        f"Вы автоматически записаны на обед! 🎉",
         parse_mode='HTML',
         reply_markup=reply_markup
     )
@@ -252,13 +259,17 @@ async def show_results_callback(update: Update, context: ContextTypes.DEFAULT_TY
     
     for idx, (rest_id, rest_name, vote_count) in enumerate(votes, 1):
         if vote_count > 0:
+            # Получаем emoji для ресторана
+            restaurant = db.get_restaurant(rest_id)
+            rest_emoji = restaurant.get('emoji', '🍽️') if restaurant else '🍽️'
             bar = "🟩" * vote_count
-            result_text += f"{idx}. <b>{rest_name}</b>: {bar} {vote_count}\n"
+            result_text += f"{idx}. {rest_emoji} <b>{rest_name}</b>: {bar} {vote_count}\n"
     
     result_text += f"\n👥 Участников: {len(participants)}"
     
     # Добавляем кнопку возврата к голосованию
     keyboard = [[
+        InlineKeyboardButton("👥 Участники", callback_data="show_participants"),
         InlineKeyboardButton("🏠 К голосованию", callback_data="back_to_voting")
     ]]
     reply_markup = InlineKeyboardMarkup(keyboard)

@@ -43,10 +43,23 @@ class Database:
                 description TEXT,
                 address TEXT,
                 phone TEXT,
+                emoji TEXT DEFAULT '🍽️',
+                photo_url TEXT,
                 is_active INTEGER DEFAULT 1,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
+        
+        # Миграция: добавление полей emoji и photo_url если их нет
+        try:
+            cursor.execute("ALTER TABLE restaurants ADD COLUMN emoji TEXT DEFAULT '🍽️'")
+        except sqlite3.OperationalError:
+            pass  # Поле уже существует
+        
+        try:
+            cursor.execute("ALTER TABLE restaurants ADD COLUMN photo_url TEXT")
+        except sqlite3.OperationalError:
+            pass  # Поле уже существует
         
         # Таблица меню
         cursor.execute('''
@@ -179,15 +192,15 @@ class Database:
     
     # ========== Рестораны ==========
     
-    def add_restaurant(self, name: str, description: str = None, address: str = None, phone: str = None) -> int:
+    def add_restaurant(self, name: str, description: str = None, address: str = None, phone: str = None, emoji: str = '🍽️', photo_url: str = None) -> int:
         """Добавить ресторан"""
         conn = self.get_connection()
         cursor = conn.cursor()
         try:
             cursor.execute('''
-                INSERT INTO restaurants (name, description, address, phone)
-                VALUES (?, ?, ?, ?)
-            ''', (name, description, address, phone))
+                INSERT INTO restaurants (name, description, address, phone, emoji, photo_url)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (name, description, address, phone, emoji, photo_url))
             conn.commit()
             return cursor.lastrowid
         finally:

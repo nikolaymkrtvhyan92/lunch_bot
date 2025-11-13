@@ -9,8 +9,8 @@ import config
 db = Database()
 
 # Состояния для ConversationHandler
-(RESTAURANT_NAME, RESTAURANT_DESC, RESTAURANT_ADDRESS, RESTAURANT_PHONE,
- MENU_RESTAURANT, MENU_ITEM_NAME, MENU_ITEM_PRICE, MENU_ITEM_DESC, MENU_ITEM_CATEGORY) = range(9)
+(RESTAURANT_NAME, RESTAURANT_DESC, RESTAURANT_ADDRESS, RESTAURANT_PHONE, RESTAURANT_EMOJI,
+ MENU_RESTAURANT, MENU_ITEM_NAME, MENU_ITEM_PRICE, MENU_ITEM_DESC, MENU_ITEM_CATEGORY) = range(10)
 
 
 def admin_only(func):
@@ -111,27 +111,53 @@ async def restaurant_address(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 
 async def restaurant_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Получить телефон и сохранить ресторан"""
+    """Получить телефон ресторана"""
     if update.message.text != '/skip':
         context.user_data['restaurant_phone'] = update.message.text
     else:
         context.user_data['restaurant_phone'] = None
+    
+    await update.message.reply_text(
+        "😊 Введите emoji для ресторана (например: 🍕 🍔 🍝 🍣)\n\n"
+        "Популярные emoji:\n"
+        "🥘 - Армянская/восточная кухня\n"
+        "🍔 - Бургерная\n"
+        "🍝 - Итальянская кухня\n"
+        "🍣 - Суши/японская кухня\n"
+        "🍕 - Пиццерия\n"
+        "🌮 - Мексиканская кухня\n"
+        "🥡 - Китайская кухня\n"
+        "🫓 - Грузинская кухня\n"
+        "🍰 - Десерты/кафе\n\n"
+        "(Или отправьте /skip для 🍽️ по умолчанию)"
+    )
+    return RESTAURANT_EMOJI
+
+
+async def restaurant_emoji(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Получить emoji и сохранить ресторан"""
+    if update.message.text != '/skip':
+        context.user_data['restaurant_emoji'] = update.message.text
+    else:
+        context.user_data['restaurant_emoji'] = '🍽️'
     
     # Сохраняем ресторан
     restaurant_id = db.add_restaurant(
         name=context.user_data['restaurant_name'],
         description=context.user_data.get('restaurant_desc'),
         address=context.user_data.get('restaurant_address'),
-        phone=context.user_data.get('restaurant_phone')
+        phone=context.user_data.get('restaurant_phone'),
+        emoji=context.user_data.get('restaurant_emoji', '🍽️')
     )
     
     restaurant_name = context.user_data['restaurant_name']
+    restaurant_emoji = context.user_data.get('restaurant_emoji', '🍽️')
     
     # Очищаем данные
     context.user_data.clear()
     
     await update.message.reply_text(
-        f"✅ Ресторан <b>{restaurant_name}</b> успешно добавлен!\n\n"
+        f"✅ Ресторан {restaurant_emoji} <b>{restaurant_name}</b> успешно добавлен!\n\n"
         f"Теперь вы можете добавить меню командой:\n"
         f"/add_menu",
         parse_mode='HTML'
