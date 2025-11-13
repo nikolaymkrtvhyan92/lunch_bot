@@ -22,6 +22,7 @@ lunch_bot.db
 # IDE
 .vscode/
 .idea/
+.cursor/
 *.swp
 *.swo
 
