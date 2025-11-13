@@ -206,26 +206,54 @@ async def results_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     result_text = "📊 <b>Результаты голосования:</b>\n\n"
     
+    # Находим победителя
+    winner_id = None
+    max_votes = 0
+    
     for idx, (rest_id, rest_name, vote_count) in enumerate(votes, 1):
         if vote_count > 0:
+            # Получаем emoji для ресторана
+            restaurant = db.get_restaurant(rest_id)
+            rest_emoji = restaurant.get('emoji', '🍽️') if restaurant else '🍽️'
             bar = "🟩" * vote_count + "⬜" * (len(participants) - vote_count) if participants else "🟩" * vote_count
-            result_text += f"{idx}. <b>{rest_name}</b>\n   {bar} {vote_count} голос(ов)\n\n"
+            
+            # Отмечаем лидера
+            leader_mark = "🏆 " if vote_count >= max_votes and vote_count > 0 else ""
+            result_text += f"{leader_mark}{idx}. {rest_emoji} <b>{rest_name}</b>\n   {bar} {vote_count} голос(ов)\n\n"
+            
+            if vote_count > max_votes:
+                max_votes = vote_count
+                winner_id = rest_id
     
-    result_text += f"\n👥 Участников обеда: {len(participants)}\n"
+    result_text += f"👥 Участников обеда: {len(participants)}\n"
     
-    # Добавляем кнопку для просмотра меню победителя
-    if votes and votes[0][2] > 0:
-        winner_id = votes[0][0]
-        winner_name = votes[0][1]
-        result_text += f"\n🏆 Лидирует: <b>{winner_name}</b>"
+    # Добавляем меню победителя
+    if winner_id:
+        winner = db.get_restaurant(winner_id)
+        menu_items = db.get_restaurant_menu(winner_id)
         
-        keyboard = [[
-            InlineKeyboardButton("📋 Меню победителя", callback_data=f"menu_{winner_id}")
-        ]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await update.message.reply_text(result_text, parse_mode='HTML', reply_markup=reply_markup)
-    else:
-        await update.message.reply_text(result_text, parse_mode='HTML')
+        if menu_items:
+            winner_emoji = winner.get('emoji', '🍽️')
+            result_text += f"\n━━━━━━━━━━━━━━━━━━"
+            result_text += f"\n🍽️ <b>Меню {winner_emoji} {winner['name']}</b>\n\n"
+            
+            # Группируем по категориям
+            categories = {}
+            for item in menu_items:
+                category = item['category'] or 'Основное меню'
+                if category not in categories:
+                    categories[category] = []
+                categories[category].append(item)
+            
+            # Выводим по категориям
+            for category, items in categories.items():
+                result_text += f"<b>{category}:</b>\n"
+                for item in items:
+                    price = f"{int(item['price'])}₽" if item['price'] else ""
+                    result_text += f"• {item['name']} — {price}\n"
+                result_text += "\n"
+    
+    await update.message.reply_text(result_text, parse_mode='HTML')
 
 
 async def show_results_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -257,15 +285,52 @@ async def show_results_callback(update: Update, context: ContextTypes.DEFAULT_TY
     
     result_text = "📊 <b>Результаты голосования:</b>\n\n"
     
+    # Находим победителя
+    winner_id = None
+    max_votes = 0
+    
     for idx, (rest_id, rest_name, vote_count) in enumerate(votes, 1):
         if vote_count > 0:
             # Получаем emoji для ресторана
             restaurant = db.get_restaurant(rest_id)
             rest_emoji = restaurant.get('emoji', '🍽️') if restaurant else '🍽️'
             bar = "🟩" * vote_count
-            result_text += f"{idx}. {rest_emoji} <b>{rest_name}</b>: {bar} {vote_count}\n"
+            
+            # Отмечаем лидера
+            leader_mark = "🏆 " if vote_count > max_votes else ""
+            result_text += f"{leader_mark}{idx}. {rest_emoji} <b>{rest_name}</b>: {bar} {vote_count}\n"
+            
+            if vote_count > max_votes:
+                max_votes = vote_count
+                winner_id = rest_id
     
     result_text += f"\n👥 Участников: {len(participants)}"
+    
+    # Добавляем меню победителя
+    if winner_id:
+        winner = db.get_restaurant(winner_id)
+        menu_items = db.get_restaurant_menu(winner_id)
+        
+        if menu_items:
+            winner_emoji = winner.get('emoji', '🍽️')
+            result_text += f"\n\n━━━━━━━━━━━━━━━━━━"
+            result_text += f"\n🍽️ <b>Меню {winner_emoji} {winner['name']}</b>\n\n"
+            
+            # Группируем по категориям
+            categories = {}
+            for item in menu_items:
+                category = item['category'] or 'Основное меню'
+                if category not in categories:
+                    categories[category] = []
+                categories[category].append(item)
+            
+            # Выводим по категориям
+            for category, items in categories.items():
+                result_text += f"<b>{category}:</b>\n"
+                for item in items:
+                    price = f"{int(item['price'])}₽" if item['price'] else ""
+                    result_text += f"• {item['name']} — {price}\n"
+                result_text += "\n"
     
     # Добавляем кнопку возврата к голосованию
     keyboard = [[
