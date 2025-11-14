@@ -45,7 +45,11 @@ from handlers import (
     show_cart_callback,
     finish_order_callback,
     clear_cart_callback,
-    my_order_command
+    my_order_command,
+    # Обработчики главного меню
+    start_lunch_callback,
+    show_my_order_callback,
+    admin_panel_callback
 )
 
 from admin_handlers import (
@@ -189,6 +193,11 @@ def main():
     # Подтверждение/отклонение заказа менеджером
     application.add_handler(CallbackQueryHandler(confirm_order_callback, pattern=r'^confirm_order_\d+$'))
     application.add_handler(CallbackQueryHandler(reject_order_callback, pattern=r'^reject_order_\d+$'))
+    
+    # Главное меню (обработчики кнопок из /start)
+    application.add_handler(CallbackQueryHandler(start_lunch_callback, pattern=r'^start_lunch$'))
+    application.add_handler(CallbackQueryHandler(show_my_order_callback, pattern=r'^show_my_order$'))
+    application.add_handler(CallbackQueryHandler(admin_panel_callback, pattern=r'^admin_panel$'))
     
     # Повторное добавление блюда
     application.add_handler(CallbackQueryHandler(menu_restaurant_selected, pattern=r'^addmenu_\d+$'))
