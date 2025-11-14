@@ -253,8 +253,11 @@ def main():
     
     logger.info("Бот запущен и готов к работе!")
     
-    # Запускаем бота
-    application.run_polling(allowed_updates=Update.ALL_TYPES)
+    # Запускаем бота с защитой от конфликтов
+    application.run_polling(
+        allowed_updates=Update.ALL_TYPES,
+        drop_pending_updates=True  # Игнорировать старые обновления
+    )
 
 
 if __name__ == '__main__':
