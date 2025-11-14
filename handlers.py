@@ -1157,130 +1157,163 @@ async def my_order_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def start_lunch_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Начать голосование через кнопку"""
     query = update.callback_query
-    await query.answer()
+    await query.answer("Загружаю рестораны...")
     
-    # Вызываем функционал команды /lunch
-    user_id = update.effective_user.id
-    user = update.effective_user
-    
-    # Добавляем пользователя
-    db.add_user(
-        user_id=user.id,
-        username=user.username or "",
-        first_name=user.first_name or "",
-        last_name=user.last_name or ""
-    )
-    
-    # Создаём или получаем активное голосование
-    today = datetime.now().strftime('%Y-%m-%d')
-    poll = db.get_active_poll(today)
-    
-    if not poll:
-        poll_id = db.create_poll(user_id, today)
-        poll = db.get_poll_by_id(poll_id)
-    else:
-        poll_id = poll['id']
-    
-    # Автоматически добавляем пользователя в участники
-    if not db.is_participant(poll_id, user_id):
-        db.add_participant(poll_id, user_id)
-    
-    # Получаем список активных ресторанов
-    restaurants = db.get_active_restaurants()
-    
-    if not restaurants:
-        await query.edit_message_text("❌ Пока не добавлено ни одного ресторана.")
-        return
-    
-    # Создаем клавиатуру с ресторанами
-    keyboard = []
-    for restaurant in restaurants:
-        emoji = restaurant.get('emoji', '🍽️')
-        keyboard.append([InlineKeyboardButton(f"{emoji} {restaurant['name']}", callback_data=f"vote_{restaurant['id']}")])
-    
-    # Добавляем кнопки управления
-    keyboard.append([InlineKeyboardButton("👥 Участники", callback_data="show_participants"),
-                     InlineKeyboardButton("📊 Результаты", callback_data="show_results")])
-    keyboard.append([InlineKeyboardButton("📋 Меню ресторанов", callback_data="show_menu_list")])
-    
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    
-    # Получаем текущие голоса
-    user_vote = db.get_user_vote(poll_id, user_id)
-    vote_text = ""
-    if user_vote:
-        restaurant = db.get_restaurant(user_vote)
-        if restaurant:
-            rest_emoji = restaurant.get('emoji', '🍽️')
-            vote_text = f"\n\n✅ Ваш выбор: {rest_emoji} <b>{restaurant['name']}</b>"
-    
-    await query.edit_message_text(
-        f"🍽️ <b>Время выбирать обед!</b>\n\n"
-        f"Куда пойдём сегодня? Голосуйте! 🎯{vote_text}",
-        reply_markup=reply_markup,
-        parse_mode='HTML'
-    )
+    try:
+        # Вызываем функционал команды /lunch
+        user_id = update.effective_user.id
+        user = update.effective_user
+        
+        # Добавляем пользователя
+        db.add_user(
+            user_id=user.id,
+            username=user.username or "",
+            first_name=user.first_name or "",
+            last_name=user.last_name or ""
+        )
+        
+        # Создаём или получаем активное голосование
+        today = datetime.now().strftime('%Y-%m-%d')
+        poll = db.get_active_poll(today)
+        
+        if not poll:
+            poll_id = db.create_poll(user_id, today)
+            poll = db.get_poll_by_id(poll_id)
+        else:
+            poll_id = poll['id']
+        
+        # Автоматически добавляем пользователя в участники
+        if not db.is_participant(poll_id, user_id):
+            db.add_participant(poll_id, user_id)
+        
+        # Получаем список активных ресторанов
+        restaurants = db.get_active_restaurants()
+        
+        if not restaurants:
+            await query.edit_message_text(
+                "❌ <b>Пока нет ресторанов</b>\n\n"
+                "Администратор должен добавить рестораны командой:\n"
+                "/add_restaurant",
+                parse_mode='HTML'
+            )
+            return
+        
+        # Создаем клавиатуру с ресторанами
+        keyboard = []
+        for restaurant in restaurants:
+            emoji = restaurant.get('emoji', '🍽️')
+            keyboard.append([InlineKeyboardButton(f"{emoji} {restaurant['name']}", callback_data=f"vote_{restaurant['id']}")])
+        
+        # Добавляем кнопки управления
+        keyboard.append([InlineKeyboardButton("👥 Участники", callback_data="show_participants"),
+                         InlineKeyboardButton("📊 Результаты", callback_data="show_results")])
+        keyboard.append([InlineKeyboardButton("📋 Меню ресторанов", callback_data="show_menu_list")])
+        
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        # Получаем текущие голоса
+        user_vote = db.get_user_vote(poll_id, user_id)
+        vote_text = ""
+        if user_vote:
+            restaurant = db.get_restaurant(user_vote)
+            if restaurant:
+                rest_emoji = restaurant.get('emoji', '🍽️')
+                vote_text = f"\n\n✅ Ваш выбор: {rest_emoji} <b>{restaurant['name']}</b>"
+        
+        await query.edit_message_text(
+            f"🍽️ <b>Время выбирать обед!</b>\n\n"
+            f"Куда пойдём сегодня? Голосуйте! 🎯{vote_text}",
+            reply_markup=reply_markup,
+            parse_mode='HTML'
+        )
+    except Exception as e:
+        # Если произошла ошибка - показываем пользователю
+        await query.edit_message_text(
+            f"❌ <b>Ошибка при загрузке</b>\n\n"
+            f"Попробуйте команду /lunch\n\n"
+            f"<code>{str(e)[:200]}</code>",
+            parse_mode='HTML'
+        )
+        # Ошибка также уйдёт админу через error_handler
+        raise
 
 
 async def show_my_order_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Показать заказ через кнопку"""
     query = update.callback_query
-    await query.answer()
+    await query.answer("Загружаю заказ...")
     
-    user_id = update.effective_user.id
-    poll = db.get_active_poll()
-    
-    if not poll:
-        await query.edit_message_text("❌ Сегодня голосование еще не начато.\n\nИспользуйте кнопку 'Начать голосование'")
-        return
-    
-    poll_id = poll['id']
-    orders = db.get_user_orders(poll_id, user_id)
-    
-    if not orders:
+    try:
+        user_id = update.effective_user.id
+        poll = db.get_active_poll()
+        
+        if not poll:
+            keyboard = [[InlineKeyboardButton("🏠 Главное меню", callback_data="back_to_main")]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await query.edit_message_text(
+                "❌ Сегодня голосование еще не начато.\n\nИспользуйте кнопку 'Начать голосование'",
+                reply_markup=reply_markup
+            )
+            return
+        
+        poll_id = poll['id']
+        orders = db.get_user_orders(poll_id, user_id)
+        
+        if not orders:
+            keyboard = [[InlineKeyboardButton("🏠 Главное меню", callback_data="back_to_main")]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await query.edit_message_text(
+                "🛒 У вас пока нет заказа.\n\nСначала проголосуйте за ресторан и выберите блюда.",
+                reply_markup=reply_markup
+            )
+            return
+        
+        text = "📋 <b>Ваш текущий заказ:</b>\n\n"
+        total = 0
+        restaurant_name = orders[0]['restaurant_name'] if orders else ""
+        restaurant_id = orders[0].get('restaurant_id') if orders else None
+        
+        for order in orders:
+            price = order['price'] * order['quantity']
+            total += price
+            text += f"• {order['name']} x{order['quantity']} — {int(price)}₽\n"
+        
+        text += f"\n🏪 Ресторан: <b>{restaurant_name}</b>"
+        text += f"\n💰 <b>Итого: {int(total)}₽</b>"
+        
+        keyboard = [
+            [InlineKeyboardButton("🗑️ Очистить корзину", callback_data="clear_cart")],
+            [InlineKeyboardButton("🏠 Главное меню", callback_data="back_to_main")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await query.edit_message_text(text, parse_mode='HTML', reply_markup=reply_markup)
+    except Exception as e:
         keyboard = [[InlineKeyboardButton("🏠 Главное меню", callback_data="back_to_main")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
         await query.edit_message_text(
-            "🛒 У вас пока нет заказа.\n\nСначала проголосуйте за ресторан и выберите блюда.",
+            f"❌ Ошибка: {str(e)[:200]}",
             reply_markup=reply_markup
         )
-        return
-    
-    text = "📋 <b>Ваш текущий заказ:</b>\n\n"
-    total = 0
-    restaurant_name = orders[0]['restaurant_name'] if orders else ""
-    restaurant_id = orders[0].get('restaurant_id') if orders else None
-    
-    for order in orders:
-        price = order['price'] * order['quantity']
-        total += price
-        text += f"• {order['name']} x{order['quantity']} — {int(price)}₽\n"
-    
-    text += f"\n🏪 Ресторан: <b>{restaurant_name}</b>"
-    text += f"\n💰 <b>Итого: {int(total)}₽</b>"
-    
-    keyboard = [
-        [InlineKeyboardButton("🗑️ Очистить корзину", callback_data="clear_cart")],
-        [InlineKeyboardButton("🏠 Главное меню", callback_data="back_to_main")]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    
-    await query.edit_message_text(text, parse_mode='HTML', reply_markup=reply_markup)
+        raise
 
 
 async def admin_panel_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Показать админ панель через кнопку"""
     query = update.callback_query
-    await query.answer()
+    await query.answer("Загружаю админ панель...")
     
-    user_id = update.effective_user.id
-    
-    # Проверка прав администратора
-    if user_id != int(config.ADMIN_ID):
-        await query.edit_message_text("❌ У вас нет прав администратора.")
-        return
-    
-    admin_text = """
+    try:
+        user_id = update.effective_user.id
+        
+        # Проверка прав администратора
+        if user_id != int(config.ADMIN_ID):
+            keyboard = [[InlineKeyboardButton("🏠 Главное меню", callback_data="back_to_main")]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await query.edit_message_text("❌ У вас нет прав администратора.", reply_markup=reply_markup)
+            return
+        
+        admin_text = """
 👑 <b>Панель администратора</b>
 
 📊 Управление системой:
@@ -1298,13 +1331,18 @@ async def admin_panel_callback(update: Update, context: ContextTypes.DEFAULT_TYP
 <b>Статистика:</b>
 Используйте кнопки ниже
 """
-    
-    keyboard = [
-        [InlineKeyboardButton("📊 Статистика", callback_data="admin_stats")],
-        [InlineKeyboardButton("👥 Пользователи", callback_data="admin_users")],
-        [InlineKeyboardButton("🏠 Главное меню", callback_data="back_to_main")]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    
-    await query.edit_message_text(admin_text, parse_mode='HTML', reply_markup=reply_markup)
+        
+        keyboard = [
+            [InlineKeyboardButton("📊 Статистика", callback_data="admin_stats")],
+            [InlineKeyboardButton("👥 Пользователи", callback_data="admin_users")],
+            [InlineKeyboardButton("🏠 Главное меню", callback_data="back_to_main")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await query.edit_message_text(admin_text, parse_mode='HTML', reply_markup=reply_markup)
+    except Exception as e:
+        keyboard = [[InlineKeyboardButton("🏠 Главное меню", callback_data="back_to_main")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(f"❌ Ошибка: {str(e)[:200]}", reply_markup=reply_markup)
+        raise
 
