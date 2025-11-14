@@ -1156,8 +1156,15 @@ async def my_order_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def start_lunch_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Начать голосование через кнопку"""
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info("🔵 start_lunch_callback вызван!")
+    
     query = update.callback_query
+    logger.info(f"🔵 Callback data: {query.data}")
+    
     await query.answer("Загружаю рестораны...")
+    logger.info("🔵 Answer отправлен")
     
     try:
         # Вызываем функционал команды /lunch

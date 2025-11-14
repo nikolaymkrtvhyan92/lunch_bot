@@ -195,12 +195,25 @@ def main():
     application.add_handler(CallbackQueryHandler(reject_order_callback, pattern=r'^reject_order_\d+$'))
     
     # Главное меню (обработчики кнопок из /start)
+    logger.info("🔵 Регистрируем обработчики главного меню...")
     application.add_handler(CallbackQueryHandler(start_lunch_callback, pattern=r'^start_lunch$'))
+    logger.info("✅ start_lunch_callback зарегистрирован")
     application.add_handler(CallbackQueryHandler(show_my_order_callback, pattern=r'^show_my_order$'))
     application.add_handler(CallbackQueryHandler(admin_panel_callback, pattern=r'^admin_panel$'))
+    logger.info("✅ Обработчики главного меню зарегистрированы")
     
     # Повторное добавление блюда
     application.add_handler(CallbackQueryHandler(menu_restaurant_selected, pattern=r'^addmenu_\d+$'))
+    
+    # ========== Логирование всех callback'ов ==========
+    
+    async def log_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Логировать все callback query для отладки"""
+        if update.callback_query:
+            logger.info(f"📞 CALLBACK: {update.callback_query.data} от user {update.effective_user.id}")
+    
+    # Добавляем в начало чтобы логировать ВСЕ callback'и
+    application.add_handler(CallbackQueryHandler(log_callback), group=-1)
     
     # ========== Обработчик ошибок ==========
     
