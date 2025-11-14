@@ -202,6 +202,33 @@ def main():
     # Повторное добавление блюда
     application.add_handler(CallbackQueryHandler(menu_restaurant_selected, pattern=r'^addmenu_\d+$'))
     
+    # ========== Обработчик ошибок ==========
+    
+    async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Обработчик ошибок - отправляет админу уведомление"""
+        try:
+            # Получаем информацию об ошибке
+            error_message = str(context.error)
+            logger.error(f"Exception while handling an update: {error_message}", exc_info=context.error)
+            
+            # Отправляем админу
+            error_text = f"⚠️ <b>ОШИБКА БОТА!</b>\n\n"
+            error_text += f"<b>Ошибка:</b> {error_message[:500]}\n\n"
+            
+            if update:
+                error_text += f"<b>User:</b> {update.effective_user.id if update.effective_user else 'Unknown'}\n"
+                error_text += f"<b>Chat:</b> {update.effective_chat.id if update.effective_chat else 'Unknown'}\n"
+            
+            await context.bot.send_message(
+                chat_id=config.ADMIN_ID,
+                text=error_text,
+                parse_mode='HTML'
+            )
+        except Exception as e:
+            logger.error(f"Error in error handler: {e}")
+    
+    application.add_error_handler(error_handler)
+    
     # ========== Планировщик уведомлений ==========
     
     scheduler = LunchScheduler(application.bot)
