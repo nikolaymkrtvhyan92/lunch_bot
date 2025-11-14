@@ -229,19 +229,15 @@ async def results_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     result_text += f"👥 Участников обеда: {len(participants)}\n"
     
-    # Получаем голос текущего пользователя
-    user_vote_id = db.get_user_vote(poll_id, user_id)
-    
-    # Показываем меню ресторана, за который проголосовал ЭТОТ пользователь
-    if user_vote_id:
-        user_restaurant = db.get_restaurant(user_vote_id)
-        menu_items = db.get_restaurant_menu(user_vote_id)
+    # Показываем меню ПОБЕДИТЕЛЯ голосования
+    if winner_id:
+        winner_restaurant = db.get_restaurant(winner_id)
+        menu_items = db.get_restaurant_menu(winner_id)
         
-        if user_restaurant and menu_items:
-            rest_emoji = user_restaurant.get('emoji', '🍽️')
+        if winner_restaurant and menu_items:
+            rest_emoji = winner_restaurant.get('emoji', '🍽️')
             result_text += f"\n━━━━━━━━━━━━━━━━━━"
-            result_text += f"\n🍽️ <b>Меню {rest_emoji} {user_restaurant['name']}</b>\n"
-            result_text += f"<i>(ваш выбор)</i>\n\n"
+            result_text += f"\n🍽️ <b>Меню {rest_emoji} {winner_restaurant['name']}</b>\n\n"
             
             # Группируем по категориям
             categories = {}
@@ -258,8 +254,17 @@ async def results_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     price = f"{int(item['price'])}₽" if item['price'] else ""
                     result_text += f"• {item['name']} — {price}\n"
                 result_text += "\n"
-    
-    await update.message.reply_text(result_text, parse_mode='HTML')
+            
+            # Добавляем кнопку "Выбрать блюда"
+            keyboard = [[
+                InlineKeyboardButton("🛒 Выбрать блюда", callback_data=f"order_from_{winner_id}")
+            ]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await update.message.reply_text(result_text, parse_mode='HTML', reply_markup=reply_markup)
+        else:
+            await update.message.reply_text(result_text, parse_mode='HTML')
+    else:
+        await update.message.reply_text(result_text, parse_mode='HTML')
 
 
 async def show_results_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -314,19 +319,15 @@ async def show_results_callback(update: Update, context: ContextTypes.DEFAULT_TY
     
     result_text += f"\n👥 Участников: {len(participants)}"
     
-    # Получаем голос текущего пользователя
-    user_vote_id = db.get_user_vote(poll_id, user_id)
-    
-    # Показываем меню ресторана, за который проголосовал ЭТОТ пользователь
-    if user_vote_id:
-        user_restaurant = db.get_restaurant(user_vote_id)
-        menu_items = db.get_restaurant_menu(user_vote_id)
+    # Показываем меню ПОБЕДИТЕЛЯ голосования
+    if winner_id:
+        winner_restaurant = db.get_restaurant(winner_id)
+        menu_items = db.get_restaurant_menu(winner_id)
         
-        if user_restaurant and menu_items:
-            rest_emoji = user_restaurant.get('emoji', '🍽️')
+        if winner_restaurant and menu_items:
+            rest_emoji = winner_restaurant.get('emoji', '🍽️')
             result_text += f"\n\n━━━━━━━━━━━━━━━━━━"
-            result_text += f"\n🍽️ <b>Меню {rest_emoji} {user_restaurant['name']}</b>\n"
-            result_text += f"<i>(ваш выбор)</i>\n\n"
+            result_text += f"\n🍽️ <b>Меню {rest_emoji} {winner_restaurant['name']}</b>\n\n"
             
             # Группируем по категориям
             categories = {}
@@ -344,11 +345,16 @@ async def show_results_callback(update: Update, context: ContextTypes.DEFAULT_TY
                     result_text += f"• {item['name']} — {price}\n"
                 result_text += "\n"
     
-    # Добавляем кнопку возврата к голосованию
-    keyboard = [[
+    # Добавляем кнопки (с кнопкой "Выбрать блюда")
+    keyboard = []
+    if winner_id:
+        keyboard.append([
+            InlineKeyboardButton("🛒 Выбрать блюда", callback_data=f"order_from_{winner_id}")
+        ])
+    keyboard.append([
         InlineKeyboardButton("👥 Участники", callback_data="show_participants"),
         InlineKeyboardButton("🏠 К голосованию", callback_data="back_to_voting")
-    ]]
+    ])
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     await query.edit_message_text(result_text, parse_mode='HTML', reply_markup=reply_markup)
@@ -927,4 +933,214 @@ async def cancel_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     db.remove_participant(poll_id, user_id)
     await update.message.reply_text("✅ Вы отменили участие в обеде.")
+
+
+# ========== Система заказа блюд ==========
+
+async def order_from_restaurant_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработчик кнопки 'Выбрать блюда' - показывает меню для заказа"""
+    query = update.callback_query
+    await query.answer()
+    
+    user_id = update.effective_user.id
+    restaurant_id = int(query.data.split('_')[2])
+    
+    poll = db.get_active_poll()
+    if not poll:
+        await query.edit_message_text("❌ Голосование завершено.")
+        return
+    
+    poll_id = poll['id']
+    restaurant = db.get_restaurant(restaurant_id)
+    menu_items = db.get_restaurant_menu(restaurant_id)
+    
+    if not menu_items:
+        await query.edit_message_text(f"❌ В ресторане {restaurant['name']} пока нет меню.")
+        return
+    
+    rest_emoji = restaurant.get('emoji', '🍽️')
+    text = f"🛒 <b>Выберите блюда из меню {rest_emoji} {restaurant['name']}</b>\n\n"
+    text += "Нажмите на блюдо чтобы добавить в корзину:\n\n"
+    
+    # Создаём кнопки для каждого блюда
+    keyboard = []
+    categories = {}
+    for item in menu_items:
+        category = item['category'] or 'Основное меню'
+        if category not in categories:
+            categories[category] = []
+        categories[category].append(item)
+    
+    for category, items in categories.items():
+        text += f"<b>{category}:</b>\n"
+        for item in items:
+            price = f"{int(item['price'])}₽" if item['price'] else ""
+            text += f"• {item['name']} — {price}\n"
+            keyboard.append([
+                InlineKeyboardButton(
+                    f"➕ {item['name']} ({price})",
+                    callback_data=f"add_item_{item['id']}"
+                )
+            ])
+        text += "\n"
+    
+    # Добавляем кнопки управления
+    keyboard.append([
+        InlineKeyboardButton("🛒 Моя корзина", callback_data=f"show_cart_{restaurant_id}"),
+        InlineKeyboardButton("🏠 Назад", callback_data="show_results")
+    ])
+    
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await query.edit_message_text(text, parse_mode='HTML', reply_markup=reply_markup)
+
+
+async def add_item_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Добавить блюдо в корзину"""
+    query = update.callback_query
+    await query.answer("✅ Добавлено в корзину!")
+    
+    user_id = update.effective_user.id
+    menu_item_id = int(query.data.split('_')[2])
+    
+    poll = db.get_active_poll()
+    if not poll:
+        await query.edit_message_text("❌ Голосование завершено.")
+        return
+    
+    poll_id = poll['id']
+    
+    # Добавляем в корзину (quantity=1)
+    db.add_order(poll_id, user_id, menu_item_id, quantity=1)
+
+
+async def show_cart_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Показать корзину пользователя"""
+    query = update.callback_query
+    await query.answer()
+    
+    user_id = update.effective_user.id
+    restaurant_id = int(query.data.split('_')[2])
+    
+    poll = db.get_active_poll()
+    if not poll:
+        await query.edit_message_text("❌ Голосование завершено.")
+        return
+    
+    poll_id = poll['id']
+    orders = db.get_user_orders(poll_id, user_id)
+    
+    if not orders:
+        text = "🛒 <b>Ваша корзина пуста</b>\n\n"
+        text += "Вернитесь назад и выберите блюда."
+        keyboard = [[
+            InlineKeyboardButton("⬅️ Вернуться к меню", callback_data=f"order_from_{restaurant_id}")
+        ]]
+    else:
+        text = "🛒 <b>Ваша корзина:</b>\n\n"
+        total = 0
+        for order in orders:
+            price = order['price'] * order['quantity']
+            total += price
+            text += f"• {order['name']} x{order['quantity']} — {int(price)}₽\n"
+        
+        text += f"\n💰 <b>Итого: {int(total)}₽</b>"
+        
+        keyboard = [
+            [InlineKeyboardButton("✅ Завершить заказ", callback_data="finish_order")],
+            [InlineKeyboardButton("🗑️ Очистить корзину", callback_data="clear_cart")],
+            [InlineKeyboardButton("⬅️ Добавить ещё", callback_data=f"order_from_{restaurant_id}")]
+        ]
+    
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await query.edit_message_text(text, parse_mode='HTML', reply_markup=reply_markup)
+
+
+async def finish_order_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Завершить заказ"""
+    query = update.callback_query
+    await query.answer()
+    
+    user_id = update.effective_user.id
+    user = update.effective_user
+    
+    poll = db.get_active_poll()
+    if not poll:
+        await query.edit_message_text("❌ Голосование завершено.")
+        return
+    
+    poll_id = poll['id']
+    orders = db.get_user_orders(poll_id, user_id)
+    
+    if not orders:
+        await query.edit_message_text("❌ Корзина пуста!")
+        return
+    
+    text = f"✅ <b>Ваш заказ принят, {user.first_name}!</b>\n\n"
+    text += "📋 <b>Вы заказали:</b>\n"
+    total = 0
+    for order in orders:
+        price = order['price'] * order['quantity']
+        total += price
+        text += f"• {order['name']} x{order['quantity']} — {int(price)}₽\n"
+    
+    text += f"\n💰 <b>Итого: {int(total)}₽</b>\n\n"
+    text += "Заказ будет отправлен менеджеру ресторана после того,\n"
+    text += "как все участники сделают свой выбор.\n\n"
+    text += "Используйте /myorder чтобы посмотреть свой заказ."
+    
+    keyboard = [[InlineKeyboardButton("🏠 На главную", callback_data="back_to_voting")]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await query.edit_message_text(text, parse_mode='HTML', reply_markup=reply_markup)
+
+
+async def clear_cart_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Очистить корзину"""
+    query = update.callback_query
+    await query.answer("🗑️ Корзина очищена")
+    
+    user_id = update.effective_user.id
+    poll = db.get_active_poll()
+    
+    if poll:
+        poll_id = poll['id']
+        db.clear_user_orders(poll_id, user_id)
+    
+    await query.edit_message_text(
+        "🗑️ Корзина очищена.\n\nИспользуйте /lunch для нового заказа.",
+        reply_markup=InlineKeyboardMarkup([[
+            InlineKeyboardButton("🏠 На главную", callback_data="back_to_voting")
+        ]])
+    )
+
+
+async def my_order_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Команда /myorder - показать свой заказ"""
+    user_id = update.effective_user.id
+    poll = db.get_active_poll()
+    
+    if not poll:
+        await update.message.reply_text("❌ Сегодня голосование еще не начато.")
+        return
+    
+    poll_id = poll['id']
+    orders = db.get_user_orders(poll_id, user_id)
+    
+    if not orders:
+        await update.message.reply_text("🛒 У вас пока нет заказа.\n\nИспользуйте /results чтобы выбрать блюда.")
+        return
+    
+    text = "📋 <b>Ваш текущий заказ:</b>\n\n"
+    total = 0
+    restaurant_name = orders[0]['restaurant_name'] if orders else ""
+    
+    for order in orders:
+        price = order['price'] * order['quantity']
+        total += price
+        text += f"• {order['name']} x{order['quantity']} — {int(price)}₽\n"
+    
+    text += f"\n🏪 Ресторан: <b>{restaurant_name}</b>"
+    text += f"\n💰 <b>Итого: {int(total)}₽</b>"
+    
+    await update.message.reply_text(text, parse_mode='HTML')
 

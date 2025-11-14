@@ -383,3 +383,193 @@ async def cancel_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("❌ Операция отменена.")
     return ConversationHandler.END
 
+
+# ========== Отправка заказа менеджеру ==========
+
+@admin_only
+async def send_order_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Команда /send_order - отправить заказ менеджеру ресторана"""
+    poll = db.get_active_poll()
+    
+    if not poll:
+        await update.message.reply_text("❌ Активного голосования нет.")
+        return
+    
+    poll_id = poll['id']
+    
+    # Получаем победителя голосования
+    votes = db.get_poll_votes(poll_id)
+    if not votes or all(v[2] == 0 for v in votes):
+        await update.message.reply_text("❌ Голосование еще не проведено.")
+        return
+    
+    winner_id = votes[0][0]
+    restaurant = db.get_restaurant(winner_id)
+    
+    if not restaurant:
+        await update.message.reply_text("❌ Ресторан-победитель не найден.")
+        return
+    
+    # Получаем все заказы
+    all_orders = db.get_all_orders(poll_id)
+    
+    if not all_orders:
+        await update.message.reply_text("❌ Никто еще не сделал заказ.")
+        return
+    
+    # Фильтруем только заказы из ресторана-победителя
+    restaurant_orders = [o for o in all_orders if o['restaurant_name'] == restaurant['name']]
+    
+    if not restaurant_orders:
+        await update.message.reply_text(f"❌ Нет заказов для ресторана {restaurant['name']}.")
+        return
+    
+    # Формируем сводку заказов
+    order_summary = db.get_order_summary(poll_id)
+    
+    rest_emoji = restaurant.get('emoji', '🍽️')
+    order_text = f"📦 <b>ЗАКАЗ для {rest_emoji} {restaurant['name']}</b>\n\n"
+    order_text += f"📅 Дата: {poll['date']}\n"
+    order_text += f"👥 Участников: {len(set([o['user_id'] for o in restaurant_orders]))}\n\n"
+    
+    order_text += "<b>━━━ СВОДКА ЗАКАЗА ━━━</b>\n\n"
+    
+    total_sum = 0
+    for item in order_summary:
+        if any(o['menu_item_id'] == item['menu_item_id'] for o in restaurant_orders):
+            total = item['price'] * item['total_quantity']
+            total_sum += total
+            order_text += f"<b>{item['name']}</b> x{item['total_quantity']} = {int(total)}₽\n"
+    
+    order_text += f"\n💰 <b>ИТОГО: {int(total_sum)}₽</b>\n\n"
+    
+    order_text += "<b>━━━ ПО УЧАСТНИКАМ ━━━</b>\n\n"
+    
+    # Группируем по пользователям
+    users_orders = {}
+    for order in restaurant_orders:
+        user_name = order['first_name']
+        if user_name not in users_orders:
+            users_orders[user_name] = []
+        users_orders[user_name].append(order)
+    
+    for user_name, orders in users_orders.items():
+        order_text += f"👤 <b>{user_name}:</b>\n"
+        user_total = 0
+        for order in orders:
+            price = order['price'] * order['quantity']
+            user_total += price
+            order_text += f"  • {order['dish_name']} x{order['quantity']} — {int(price)}₽\n"
+        order_text += f"  💵 Сумма: {int(user_total)}₽\n\n"
+    
+    # Отправка менеджеру через Telegram (если есть manager_telegram_id)
+    manager_id = restaurant.get('manager_telegram_id')
+    manager_phone = restaurant.get('manager_phone')
+    
+    if manager_id:
+        try:
+            keyboard = [[
+                InlineKeyboardButton("✅ Подтвердить заказ", callback_data=f"confirm_order_{poll_id}"),
+                InlineKeyboardButton("❌ Отклонить", callback_data=f"reject_order_{poll_id}")
+            ]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            await context.bot.send_message(
+                chat_id=manager_id,
+                text=order_text,
+                parse_mode='HTML',
+                reply_markup=reply_markup
+            )
+            
+            await update.message.reply_text(
+                f"✅ Заказ отправлен менеджеру {restaurant['name']} в Telegram!\n\n"
+                f"📱 Телефон: {manager_phone or 'не указан'}"
+            )
+        except Exception as e:
+            await update.message.reply_text(
+                f"❌ Не удалось отправить заказ менеджеру в Telegram.\n"
+                f"Ошибка: {str(e)}\n\n"
+                f"📱 Свяжитесь с менеджером по телефону: {manager_phone or 'не указан'}"
+            )
+    elif manager_phone:
+        await update.message.reply_text(
+            f"📱 Менеджер не добавлен в бота.\n\n"
+            f"Позвоните по телефону: <b>{manager_phone}</b>\n\n"
+            f"Отправьте ему следующий заказ:\n\n{order_text}",
+            parse_mode='HTML'
+        )
+    else:
+        await update.message.reply_text(
+            f"❌ У ресторана {restaurant['name']} не указаны контакты менеджера.\n\n"
+            f"Добавьте контакты через админ-панель и повторите отправку."
+        )
+    
+    # Отправляем админу копию заказа
+    await update.message.reply_text(f"📋 Копия заказа:\n\n{order_text}", parse_mode='HTML')
+
+
+# ========== Подтверждение заказа менеджером ==========
+
+async def confirm_order_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Менеджер подтверждает заказ"""
+    query = update.callback_query
+    await query.answer("✅ Заказ подтверждён!")
+    
+    poll_id = int(query.data.split('_')[2])
+    
+    # Уведомляем участников
+    participants = db.get_participants(poll_id)
+    poll = db.get_poll_by_id(poll_id)
+    
+    if poll:
+        votes = db.get_poll_votes(poll_id)
+        if votes:
+            winner_id = votes[0][0]
+            restaurant = db.get_restaurant(winner_id)
+            rest_emoji = restaurant.get('emoji', '🍽️')
+            
+            notification = (
+                f"✅ <b>Заказ подтверждён!</b>\n\n"
+                f"Ресторан {rest_emoji} <b>{restaurant['name']}</b> принял ваш заказ.\n"
+                f"Ожидайте доставку! 🚚"
+            )
+            
+            for participant in participants:
+                try:
+                    await context.bot.send_message(
+                        chat_id=participant['user_id'],
+                        text=notification,
+                        parse_mode='HTML'
+                    )
+                except Exception:
+                    pass
+    
+    await query.edit_message_text(
+        f"{query.message.text}\n\n✅ <b>ЗАКАЗ ПОДТВЕРЖДЁН</b>",
+        parse_mode='HTML'
+    )
+
+
+async def reject_order_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Менеджер отклоняет заказ"""
+    query = update.callback_query
+    await query.answer("❌ Заказ отклонён")
+    
+    poll_id = int(query.data.split('_')[2])
+    
+    # Уведомляем администратора
+    try:
+        admin_id = int(config.ADMIN_ID)
+        await context.bot.send_message(
+            chat_id=admin_id,
+            text=f"❌ <b>Менеджер отклонил заказ!</b>\n\nСвяжитесь с ним для уточнения деталей.",
+            parse_mode='HTML'
+        )
+    except Exception:
+        pass
+    
+    await query.edit_message_text(
+        f"{query.message.text}\n\n❌ <b>ЗАКАЗ ОТКЛОНЁН</b>",
+        parse_mode='HTML'
+    )
+

@@ -38,7 +38,14 @@ from handlers import (
     clear_orders_callback,
     back_to_main_callback,
     back_to_voting_callback,
-    cancel_command
+    cancel_command,
+    # Новые обработчики системы заказа
+    order_from_restaurant_callback,
+    add_item_callback,
+    show_cart_callback,
+    finish_order_callback,
+    clear_cart_callback,
+    my_order_command
 )
 
 from admin_handlers import (
@@ -59,6 +66,9 @@ from admin_handlers import (
     admin_stats_callback,
     admin_users_callback,
     cancel_admin,
+    send_order_command,
+    confirm_order_callback,
+    reject_order_callback,
     RESTAURANT_NAME,
     RESTAURANT_DESC,
     RESTAURANT_ADDRESS,
@@ -163,9 +173,22 @@ def main():
     # Навигация
     application.add_handler(CallbackQueryHandler(back_to_voting_callback, pattern=r'^back_to_voting$'))
     
+    # Система заказа блюд
+    application.add_handler(CallbackQueryHandler(order_from_restaurant_callback, pattern=r'^order_from_\d+$'))
+    application.add_handler(CallbackQueryHandler(add_item_callback, pattern=r'^add_item_\d+$'))
+    application.add_handler(CallbackQueryHandler(show_cart_callback, pattern=r'^show_cart_\d+$'))
+    application.add_handler(CallbackQueryHandler(finish_order_callback, pattern=r'^finish_order$'))
+    application.add_handler(CallbackQueryHandler(clear_cart_callback, pattern=r'^clear_cart$'))
+    application.add_handler(CommandHandler("myorder", my_order_command))
+    
     # Админ панель
     application.add_handler(CallbackQueryHandler(admin_stats_callback, pattern=r'^admin_stats$'))
     application.add_handler(CallbackQueryHandler(admin_users_callback, pattern=r'^admin_users$'))
+    application.add_handler(CommandHandler("send_order", send_order_command))
+    
+    # Подтверждение/отклонение заказа менеджером
+    application.add_handler(CallbackQueryHandler(confirm_order_callback, pattern=r'^confirm_order_\d+$'))
+    application.add_handler(CallbackQueryHandler(reject_order_callback, pattern=r'^reject_order_\d+$'))
     
     # Повторное добавление блюда
     application.add_handler(CallbackQueryHandler(menu_restaurant_selected, pattern=r'^addmenu_\d+$'))

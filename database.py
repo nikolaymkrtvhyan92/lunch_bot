@@ -135,6 +135,17 @@ class Database:
             )
         ''')
         
+        # Миграция: добавление полей manager_telegram_id и manager_phone
+        try:
+            cursor.execute("ALTER TABLE restaurants ADD COLUMN manager_telegram_id INTEGER")
+        except sqlite3.OperationalError:
+            pass  # Поле уже существует
+        
+        try:
+            cursor.execute("ALTER TABLE restaurants ADD COLUMN manager_phone TEXT")
+        except sqlite3.OperationalError:
+            pass  # Поле уже существует
+        
         conn.commit()
         conn.close()
     
@@ -192,15 +203,18 @@ class Database:
     
     # ========== Рестораны ==========
     
-    def add_restaurant(self, name: str, description: str = None, address: str = None, phone: str = None, emoji: str = '🍽️', photo_url: str = None) -> int:
+    def add_restaurant(self, name: str, description: str = None, address: str = None, phone: str = None, 
+                       emoji: str = '🍽️', photo_url: str = None, manager_telegram_id: int = None, 
+                       manager_phone: str = None) -> int:
         """Добавить ресторан"""
         conn = self.get_connection()
         cursor = conn.cursor()
         try:
             cursor.execute('''
-                INSERT INTO restaurants (name, description, address, phone, emoji, photo_url)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', (name, description, address, phone, emoji, photo_url))
+                INSERT INTO restaurants (name, description, address, phone, emoji, photo_url, 
+                                       manager_telegram_id, manager_phone)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (name, description, address, phone, emoji, photo_url, manager_telegram_id, manager_phone))
             conn.commit()
             return cursor.lastrowid
         finally:
@@ -384,6 +398,17 @@ class Database:
                 ORDER BY created_at DESC
                 LIMIT 1
             ''', (date,))
+            result = cursor.fetchone()
+            return dict(result) if result else None
+        finally:
+            conn.close()
+    
+    def get_poll_by_id(self, poll_id: int) -> Optional[dict]:
+        """Получить голосование по ID"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute('SELECT * FROM polls WHERE id = ?', (poll_id,))
             result = cursor.fetchone()
             return dict(result) if result else None
         finally:
