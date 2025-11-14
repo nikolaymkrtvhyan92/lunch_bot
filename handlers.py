@@ -1194,7 +1194,7 @@ async def start_lunch_callback(update: Update, context: ContextTypes.DEFAULT_TYP
             db.add_participant(poll_id, user_id)
         
         # Получаем список активных ресторанов
-        restaurants = db.get_active_restaurants()
+        restaurants = db.get_all_restaurants(active_only=True)
         
         if not restaurants:
             await query.edit_message_text(
