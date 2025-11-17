@@ -7,85 +7,139 @@ from database import Database
 logger = logging.getLogger(__name__)
 
 def seed_ani_menu(db, restaurant_id):
-    """Добавить меню для ресторана Ани (с фото и бейджами)"""
+    """Добавить меню для ресторана Ани (с реальными фото блюд)"""
     
-    # Placeholder фото по категориям
+    # Реальные фото блюд с Unsplash (качественные изображения еды)
     photos = {
-        'Салаты': 'https://picsum.photos/800/600?random=salad',
-        'Супы': 'https://picsum.photos/800/600?random=soup',
-        'Холодные закуски': 'https://picsum.photos/800/600?random=appetizer',
-        'Горячие закуски': 'https://picsum.photos/800/600?random=hot',
-        'Шашлыки': 'https://picsum.photos/800/600?random=kebab',
-        'Горячие блюда': 'https://picsum.photos/800/600?random=main',
-        'Гарниры': 'https://picsum.photos/800/600?random=side',
-        'Десерты': 'https://picsum.photos/800/600?random=dessert',
-        'Напитки': 'https://picsum.photos/800/600?random=drink',
+        # Холодные закуски
+        'Ассорти мясное': 'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=800',
+        'Ассорти рыбное': 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=800',
+        'Долма': 'https://images.unsplash.com/photo-1625937286074-9ca519d5d9df?w=800',
+        'Язык отварной': 'https://images.unsplash.com/photo-1603073203011-60ef5b2ceb80?w=800',
+        'Овощи свежие': 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800',
+        'Сыр-тесто-зелень': 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?w=800',
+        
+        # Горячие закуски
+        'Хинкали (5 шт)': 'https://images.unsplash.com/photo-1626200419199-391ae4be7a41?w=800',
+        'Хачапури по-аджарски': 'https://images.unsplash.com/photo-1619740455993-9e5c6e0eb0e7?w=800',
+        'Хачапури по-мегрельски': 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800',
+        'Люля-кебаб': 'https://images.unsplash.com/photo-1603360946369-dc9bb6258143?w=800',
+        
+        # Салаты
+        'Греческий салат': 'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=800',
+        'Цезарь с курицей': 'https://images.unsplash.com/photo-1546793665-c74683f339c1?w=800',
+        'Цезарь с креветками': 'https://images.unsplash.com/photo-1551248429-40975aa4de74?w=800',
+        'Оливье': 'https://images.unsplash.com/photo-1505253716362-afaea1d3d1af?w=800',
+        'Крабовый салат': 'https://images.unsplash.com/photo-1607532941433-304659e8198a?w=800',
+        'Винегрет': 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800',
+        
+        # Супы
+        'Харчо': 'https://images.unsplash.com/photo-1547592166-23ac45744acd?w=800',
+        'Бульон куриный': 'https://images.unsplash.com/photo-1588566565463-180a5b2090d2?w=800',
+        'Суп-лапша': 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=800',
+        'Окрошка': 'https://images.unsplash.com/photo-1547592180-85f173990554?w=800',
+        
+        # Шашлыки
+        'Шашлык из свинины': 'https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?w=800',
+        'Шашлык из курицы': 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800',
+        'Шашлык из баранины': 'https://images.unsplash.com/photo-1603360946369-dc9bb6258143?w=800',
+        'Шашлык из говядины': 'https://images.unsplash.com/photo-1558030006-450675393462?w=800',
+        'Люля-кебаб из баранины': 'https://images.unsplash.com/photo-1603360946369-dc9bb6258143?w=800',
+        'Крылышки куриные': 'https://images.unsplash.com/photo-1527477396000-e27163b481c2?w=800',
+        
+        # Горячие блюда
+        'Стейк из свинины': 'https://images.unsplash.com/photo-1588168333986-5078d3ae3976?w=800',
+        'Стейк из говядины': 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=800',
+        'Куриное филе': 'https://images.unsplash.com/photo-1598103442097-8b74394b95c6?w=800',
+        'Рыба на гриле': 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=800',
+        'Картофель фри': 'https://images.unsplash.com/photo-1576107232684-1279f390859f?w=800',
+        'Овощи гриль': 'https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?w=800',
+        
+        # Гарниры
+        'Картофель по-деревенски': 'https://images.unsplash.com/photo-1518013431117-eb1465fa5752?w=800',
+        'Рис отварной': 'https://images.unsplash.com/photo-1516684732162-798a0062be99?w=800',
+        'Пюре картофельное': 'https://images.unsplash.com/photo-1585032226651-759b368d7246?w=800',
+        'Гречка': 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=800',
+        
+        # Десерты
+        'Чизкейк': 'https://images.unsplash.com/photo-1533134486753-c833f0ed4866?w=800',
+        'Тирамису': 'https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=800',
+        'Наполеон': 'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=800',
+        'Мороженое': 'https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=800',
+        
+        # Напитки
+        'Чай черный/зеленый': 'https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?w=800',
+        'Кофе американо': 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=800',
+        'Кофе капучино': 'https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=800',
+        'Сок': 'https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=800',
+        'Вода минеральная': 'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=800',
+        'Лимонад': 'https://images.unsplash.com/photo-1523677011781-c91d1bbe2f9d?w=800',
     }
     
     menu_items = [
         # Холодные закуски
-        {"category": "Холодные закуски", "name": "Ассорти мясное", "price": 2900, "photo_url": photos['Холодные закуски']},
-        {"category": "Холодные закуски", "name": "Ассорти рыбное", "price": 2900, "photo_url": photos['Холодные закуски']},
-        {"category": "Холодные закуски", "name": "Долма", "price": 1800, "photo_url": photos['Холодные закуски'], "badges": "new"},
-        {"category": "Холодные закуски", "name": "Язык отварной", "price": 1800, "photo_url": photos['Холодные закуски']},
-        {"category": "Холодные закуски", "name": "Овощи свежие", "price": 900, "photo_url": photos['Холодные закуски']},
-        {"category": "Холодные закуски", "name": "Сыр-тесто-зелень", "price": 800, "photo_url": photos['Холодные закуски']},
+        {"category": "Холодные закуски", "name": "Ассорти мясное", "price": 2900, "photo_url": photos['Ассорти мясное']},
+        {"category": "Холодные закуски", "name": "Ассорти рыбное", "price": 2900, "photo_url": photos['Ассорти рыбное']},
+        {"category": "Холодные закуски", "name": "Долма", "price": 1800, "photo_url": photos['Долма'], "badges": "new"},
+        {"category": "Холодные закуски", "name": "Язык отварной", "price": 1800, "photo_url": photos['Язык отварной']},
+        {"category": "Холодные закуски", "name": "Овощи свежие", "price": 900, "photo_url": photos['Овощи свежие']},
+        {"category": "Холодные закуски", "name": "Сыр-тесто-зелень", "price": 800, "photo_url": photos['Сыр-тесто-зелень']},
         
         # Горячие закуски
-        {"category": "Горячие закуски", "name": "Хинкали (5 шт)", "price": 700, "photo_url": photos['Горячие закуски'], "badges": "hit"},
-        {"category": "Горячие закуски", "name": "Хачапури по-аджарски", "price": 1200, "photo_url": photos['Горячие закуски'], "badges": "new,hit"},
-        {"category": "Горячие закуски", "name": "Хачапури по-мегрельски", "price": 1000, "photo_url": photos['Горячие закуски']},
-        {"category": "Горячие закуски", "name": "Люля-кебаб", "price": 600, "photo_url": photos['Горячие закуски']},
+        {"category": "Горячие закуски", "name": "Хинкали (5 шт)", "price": 700, "photo_url": photos['Хинкали (5 шт)'], "badges": "hit"},
+        {"category": "Горячие закуски", "name": "Хачапури по-аджарски", "price": 1200, "photo_url": photos['Хачапури по-аджарски'], "badges": "new,hit"},
+        {"category": "Горячие закуски", "name": "Хачапури по-мегрельски", "price": 1000, "photo_url": photos['Хачапури по-мегрельски']},
+        {"category": "Горячие закуски", "name": "Люля-кебаб", "price": 600, "photo_url": photos['Люля-кебаб']},
         
         # Салаты
-        {"category": "Салаты", "name": "Греческий салат", "price": 800, "photo_url": photos['Салаты'], "badges": "hit"},
-        {"category": "Салаты", "name": "Цезарь с курицей", "price": 900, "photo_url": photos['Салаты']},
-        {"category": "Салаты", "name": "Цезарь с креветками", "price": 1200, "photo_url": photos['Салаты']},
-        {"category": "Салаты", "name": "Оливье", "price": 600, "photo_url": photos['Салаты']},
-        {"category": "Салаты", "name": "Крабовый салат", "price": 700, "photo_url": photos['Салаты']},
-        {"category": "Салаты", "name": "Винегрет", "price": 500, "photo_url": photos['Салаты']},
+        {"category": "Салаты", "name": "Греческий салат", "price": 800, "photo_url": photos['Греческий салат'], "badges": "hit"},
+        {"category": "Салаты", "name": "Цезарь с курицей", "price": 900, "photo_url": photos['Цезарь с курицей']},
+        {"category": "Салаты", "name": "Цезарь с креветками", "price": 1200, "photo_url": photos['Цезарь с креветками']},
+        {"category": "Салаты", "name": "Оливье", "price": 600, "photo_url": photos['Оливье']},
+        {"category": "Салаты", "name": "Крабовый салат", "price": 700, "photo_url": photos['Крабовый салат']},
+        {"category": "Салаты", "name": "Винегрет", "price": 500, "photo_url": photos['Винегрет']},
         
         # Супы
-        {"category": "Супы", "name": "Харчо", "price": 600, "photo_url": photos['Супы'], "badges": "spicy,hit"},
-        {"category": "Супы", "name": "Бульон куриный", "price": 400, "photo_url": photos['Супы']},
-        {"category": "Супы", "name": "Суп-лапша", "price": 500, "photo_url": photos['Супы']},
-        {"category": "Супы", "name": "Окрошка", "price": 600, "photo_url": photos['Супы']},
+        {"category": "Супы", "name": "Харчо", "price": 600, "photo_url": photos['Харчо'], "badges": "spicy,hit"},
+        {"category": "Супы", "name": "Бульон куриный", "price": 400, "photo_url": photos['Бульон куриный']},
+        {"category": "Супы", "name": "Суп-лапша", "price": 500, "photo_url": photos['Суп-лапша']},
+        {"category": "Супы", "name": "Окрошка", "price": 600, "photo_url": photos['Окрошка']},
         
         # Шашлыки
-        {"category": "Шашлыки", "name": "Шашлык из свинины", "price": 1800, "photo_url": photos['Шашлыки']},
-        {"category": "Шашлыки", "name": "Шашлык из курицы", "price": 1500, "photo_url": photos['Шашлыки']},
-        {"category": "Шашлыки", "name": "Шашлык из баранины", "price": 2200, "photo_url": photos['Шашлыки']},
-        {"category": "Шашлыки", "name": "Шашлык из говядины", "price": 2000, "photo_url": photos['Шашлыки']},
-        {"category": "Шашлыки", "name": "Люля-кебаб из баранины", "price": 1600, "photo_url": photos['Шашлыки']},
-        {"category": "Шашлыки", "name": "Крылышки куриные", "price": 1200, "photo_url": photos['Шашлыки']},
+        {"category": "Шашлыки", "name": "Шашлык из свинины", "price": 1800, "photo_url": photos['Шашлык из свинины']},
+        {"category": "Шашлыки", "name": "Шашлык из курицы", "price": 1500, "photo_url": photos['Шашлык из курицы']},
+        {"category": "Шашлыки", "name": "Шашлык из баранины", "price": 2200, "photo_url": photos['Шашлык из баранины']},
+        {"category": "Шашлыки", "name": "Шашлык из говядины", "price": 2000, "photo_url": photos['Шашлык из говядины']},
+        {"category": "Шашлыки", "name": "Люля-кебаб из баранины", "price": 1600, "photo_url": photos['Люля-кебаб из баранины']},
+        {"category": "Шашлыки", "name": "Крылышки куриные", "price": 1200, "photo_url": photos['Крылышки куриные']},
         
         # Горячие блюда
-        {"category": "Горячие блюда", "name": "Стейк из свинины", "price": 1800, "photo_url": photos['Горячие блюда']},
-        {"category": "Горячие блюда", "name": "Стейк из говядины", "price": 2200, "photo_url": photos['Горячие блюда']},
-        {"category": "Горячие блюда", "name": "Куриное филе", "price": 1300, "photo_url": photos['Горячие блюда']},
-        {"category": "Горячие блюда", "name": "Рыба на гриле", "price": 1600, "photo_url": photos['Горячие блюда']},
-        {"category": "Горячие блюда", "name": "Картофель фри", "price": 400, "photo_url": photos['Горячие блюда']},
-        {"category": "Горячие блюда", "name": "Овощи гриль", "price": 600, "photo_url": photos['Горячие блюда']},
+        {"category": "Горячие блюда", "name": "Стейк из свинины", "price": 1800, "photo_url": photos['Стейк из свинины']},
+        {"category": "Горячие блюда", "name": "Стейк из говядины", "price": 2200, "photo_url": photos['Стейк из говядины']},
+        {"category": "Горячие блюда", "name": "Куриное филе", "price": 1300, "photo_url": photos['Куриное филе']},
+        {"category": "Горячие блюда", "name": "Рыба на гриле", "price": 1600, "photo_url": photos['Рыба на гриле']},
+        {"category": "Горячие блюда", "name": "Картофель фри", "price": 400, "photo_url": photos['Картофель фри']},
+        {"category": "Горячие блюда", "name": "Овощи гриль", "price": 600, "photo_url": photos['Овощи гриль']},
         
         # Гарниры
-        {"category": "Гарниры", "name": "Картофель по-деревенски", "price": 400, "photo_url": photos['Гарниры']},
-        {"category": "Гарниры", "name": "Рис отварной", "price": 300, "photo_url": photos['Гарниры']},
-        {"category": "Гарниры", "name": "Пюре картофельное", "price": 300, "photo_url": photos['Гарниры']},
-        {"category": "Гарниры", "name": "Гречка", "price": 300, "photo_url": photos['Гарниры']},
+        {"category": "Гарниры", "name": "Картофель по-деревенски", "price": 400, "photo_url": photos['Картофель по-деревенски']},
+        {"category": "Гарниры", "name": "Рис отварной", "price": 300, "photo_url": photos['Рис отварной']},
+        {"category": "Гарниры", "name": "Пюре картофельное", "price": 300, "photo_url": photos['Пюре картофельное']},
+        {"category": "Гарниры", "name": "Гречка", "price": 300, "photo_url": photos['Гречка']},
         
         # Десерты
-        {"category": "Десерты", "name": "Чизкейк", "price": 600, "photo_url": photos['Десерты']},
-        {"category": "Десерты", "name": "Тирамису", "price": 700, "photo_url": photos['Десерты'], "badges": "new"},
-        {"category": "Десерты", "name": "Наполеон", "price": 500, "photo_url": photos['Десерты']},
-        {"category": "Десерты", "name": "Мороженое", "price": 400, "photo_url": photos['Десерты']},
+        {"category": "Десерты", "name": "Чизкейк", "price": 600, "photo_url": photos['Чизкейк']},
+        {"category": "Десерты", "name": "Тирамису", "price": 700, "photo_url": photos['Тирамису'], "badges": "new"},
+        {"category": "Десерты", "name": "Наполеон", "price": 500, "photo_url": photos['Наполеон']},
+        {"category": "Десерты", "name": "Мороженое", "price": 400, "photo_url": photos['Мороженое']},
         
         # Напитки
-        {"category": "Напитки", "name": "Чай черный/зеленый", "price": 200, "photo_url": photos['Напитки']},
-        {"category": "Напитки", "name": "Кофе американо", "price": 300, "photo_url": photos['Напитки']},
-        {"category": "Напитки", "name": "Кофе капучино", "price": 400, "photo_url": photos['Напитки']},
-        {"category": "Напитки", "name": "Сок", "price": 300, "photo_url": photos['Напитки']},
-        {"category": "Напитки", "name": "Вода минеральная", "price": 200, "photo_url": photos['Напитки']},
-        {"category": "Напитки", "name": "Лимонад", "price": 300, "photo_url": photos['Напитки']},
+        {"category": "Напитки", "name": "Чай черный/зеленый", "price": 200, "photo_url": photos['Чай черный/зеленый']},
+        {"category": "Напитки", "name": "Кофе американо", "price": 300, "photo_url": photos['Кофе американо']},
+        {"category": "Напитки", "name": "Кофе капучино", "price": 400, "photo_url": photos['Кофе капучино']},
+        {"category": "Напитки", "name": "Сок", "price": 300, "photo_url": photos['Сок']},
+        {"category": "Напитки", "name": "Вода минеральная", "price": 200, "photo_url": photos['Вода минеральная']},
+        {"category": "Напитки", "name": "Лимонад", "price": 300, "photo_url": photos['Лимонад']},
     ]
     
     added = 0
