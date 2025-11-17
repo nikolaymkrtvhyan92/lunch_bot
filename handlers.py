@@ -10,6 +10,105 @@ import config
 db = Database()
 
 
+# ========== Хелперы для форматирования ==========
+
+def get_category_emoji(category_name: str) -> str:
+    """Получить emoji для категории меню"""
+    category_lower = category_name.lower()
+    
+    if "холодн" in category_lower and "закуск" in category_lower:
+        return "🥗"
+    elif "горяч" in category_lower and "закуск" in category_lower:
+        return "🔥"
+    elif "салат" in category_lower:
+        return "🥗"
+    elif "суп" in category_lower:
+        return "🍲"
+    elif "шашлык" in category_lower or "гриль" in category_lower:
+        return "🍖"
+    elif "горяч" in category_lower and "блюд" in category_lower:
+        return "🍳"
+    elif "гарнир" in category_lower:
+        return "🍚"
+    elif "десерт" in category_lower:
+        return "🍰"
+    elif "напит" in category_lower:
+        return "☕"
+    else:
+        return "🍽️"
+
+
+def format_menu_beautiful(restaurant_name: str, restaurant_emoji: str, menu_items: list, mode: str = "view") -> str:
+    """
+    Красиво форматировать меню ресторана
+    
+    mode: "view" - просмотр меню, "order" - выбор блюд для заказа
+    """
+    if mode == "order":
+        text = f"🛒 <b>Меню {restaurant_emoji} {restaurant_name}</b>\n"
+        text += f"<i>Нажмите на блюдо чтобы добавить в корзину</i>\n\n"
+    else:
+        text = f"\n╔═══════════════════════╗\n"
+        text += f"   🍽️ <b>МЕНЮ {restaurant_emoji} {restaurant_name.upper()}</b>\n"
+        text += f"╚═══════════════════════╝\n\n"
+    
+    # Группируем по категориям
+    categories = {}
+    for item in menu_items:
+        category = item['category'] or 'Основное меню'
+        if category not in categories:
+            categories[category] = []
+        categories[category].append(item)
+    
+    # Определяем порядок категорий
+    category_order = [
+        "Холодные закуски",
+        "Горячие закуски", 
+        "Салаты",
+        "Супы",
+        "Шашлыки",
+        "Горячие блюда",
+        "Гарниры",
+        "Десерты",
+        "Напитки"
+    ]
+    
+    # Сортируем категории по определенному порядку
+    sorted_categories = []
+    for cat in category_order:
+        if cat in categories:
+            sorted_categories.append((cat, categories[cat]))
+    
+    # Добавляем остальные категории которых нет в списке
+    for cat, items in categories.items():
+        if cat not in category_order:
+            sorted_categories.append((cat, items))
+    
+    # Выводим категории
+    for idx, (category, items) in enumerate(sorted_categories):
+        category_emoji = get_category_emoji(category)
+        
+        if mode == "view":
+            text += f"┌─ {category_emoji} <b>{category}</b>\n"
+            text += f"│\n"
+            
+            for item in items:
+                price = f"{int(item['price'])}" if item['price'] else "—"
+                # Форматируем цену красиво
+                text += f"│  • {item['name']}\n"
+                text += f"│    💰 <b>{price} ₽</b>\n"
+            
+            text += f"└{'─' * 25}\n\n"
+        else:
+            text += f"{category_emoji} <b>{category}</b>\n"
+            for item in items:
+                price = f"{int(item['price'])}₽" if item['price'] else ""
+                text += f"  • {item['name']} — {price}\n"
+            text += "\n"
+    
+    return text
+
+
 # ========== Общие команды ==========
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -243,24 +342,15 @@ async def results_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         if winner_restaurant and menu_items:
             rest_emoji = winner_restaurant.get('emoji', '🍽️')
-            result_text += f"\n━━━━━━━━━━━━━━━━━━"
-            result_text += f"\n🍽️ <b>Меню {rest_emoji} {winner_restaurant['name']}</b>\n\n"
             
-            # Группируем по категориям
-            categories = {}
-            for item in menu_items:
-                category = item['category'] or 'Основное меню'
-                if category not in categories:
-                    categories[category] = []
-                categories[category].append(item)
-            
-            # Выводим по категориям
-            for category, items in categories.items():
-                result_text += f"<b>{category}:</b>\n"
-                for item in items:
-                    price = f"{int(item['price'])}₽" if item['price'] else ""
-                    result_text += f"• {item['name']} — {price}\n"
-                result_text += "\n"
+            # Используем красивое форматирование меню
+            menu_text = format_menu_beautiful(
+                winner_restaurant['name'],
+                rest_emoji,
+                menu_items,
+                mode="view"
+            )
+            result_text += menu_text
             
             # Добавляем кнопку "Выбрать блюда"
             keyboard = [[
@@ -333,24 +423,15 @@ async def show_results_callback(update: Update, context: ContextTypes.DEFAULT_TY
         
         if winner_restaurant and menu_items:
             rest_emoji = winner_restaurant.get('emoji', '🍽️')
-            result_text += f"\n\n━━━━━━━━━━━━━━━━━━"
-            result_text += f"\n🍽️ <b>Меню {rest_emoji} {winner_restaurant['name']}</b>\n\n"
             
-            # Группируем по категориям
-            categories = {}
-            for item in menu_items:
-                category = item['category'] or 'Основное меню'
-                if category not in categories:
-                    categories[category] = []
-                categories[category].append(item)
-            
-            # Выводим по категориям
-            for category, items in categories.items():
-                result_text += f"<b>{category}:</b>\n"
-                for item in items:
-                    price = f"{int(item['price'])}₽" if item['price'] else ""
-                    result_text += f"• {item['name']} — {price}\n"
-                result_text += "\n"
+            # Используем красивое форматирование меню
+            menu_text = format_menu_beautiful(
+                winner_restaurant['name'],
+                rest_emoji,
+                menu_items,
+                mode="view"
+            )
+            result_text += menu_text
     
     # Добавляем кнопки (с кнопкой "Выбрать блюда")
     keyboard = []
@@ -966,8 +1047,14 @@ async def order_from_restaurant_callback(update: Update, context: ContextTypes.D
         return
     
     rest_emoji = restaurant.get('emoji', '🍽️')
-    text = f"🛒 <b>Выберите блюда из меню {rest_emoji} {restaurant['name']}</b>\n\n"
-    text += "Нажмите на блюдо чтобы добавить в корзину:\n\n"
+    
+    # Используем красивое форматирование меню
+    text = format_menu_beautiful(
+        restaurant['name'],
+        rest_emoji,
+        menu_items,
+        mode="order"
+    )
     
     # Создаём кнопки для каждого блюда
     keyboard = []
@@ -978,18 +1065,29 @@ async def order_from_restaurant_callback(update: Update, context: ContextTypes.D
             categories[category] = []
         categories[category].append(item)
     
-    for category, items in categories.items():
-        text += f"<b>{category}:</b>\n"
+    # Определяем порядок категорий (такой же как в format_menu_beautiful)
+    category_order = [
+        "Холодные закуски", "Горячие закуски", "Салаты", "Супы",
+        "Шашлыки", "Горячие блюда", "Гарниры", "Десерты", "Напитки"
+    ]
+    
+    sorted_categories = []
+    for cat in category_order:
+        if cat in categories:
+            sorted_categories.append((cat, categories[cat]))
+    for cat, items in categories.items():
+        if cat not in category_order:
+            sorted_categories.append((cat, items))
+    
+    for category, items in sorted_categories:
         for item in items:
             price = f"{int(item['price'])}₽" if item['price'] else ""
-            text += f"• {item['name']} — {price}\n"
             keyboard.append([
                 InlineKeyboardButton(
                     f"➕ {item['name']} ({price})",
                     callback_data=f"add_item_{item['id']}"
                 )
             ])
-        text += "\n"
     
     # Добавляем кнопки управления
     keyboard.append([
