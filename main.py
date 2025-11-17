@@ -26,6 +26,7 @@ from handlers import (
     vote_callback,
     results_command,
     show_results_callback,
+    show_results_category_callback,
     join_command,
     participants_command,
     show_participants_callback,
@@ -204,6 +205,7 @@ def main():
     # Голосование
     application.add_handler(CallbackQueryHandler(vote_callback, pattern=r'^vote_\d+$'))
     application.add_handler(CallbackQueryHandler(show_results_callback, pattern=r'^show_results$'))
+    application.add_handler(CallbackQueryHandler(show_results_category_callback, pattern=r'^results_cat_'))
     
     # Участники
     application.add_handler(CallbackQueryHandler(show_participants_callback, pattern=r'^show_participants$'))

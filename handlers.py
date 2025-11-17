@@ -348,27 +348,41 @@ async def results_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     result_text += f"👥 Участников обеда: {len(participants)}\n"
     
-    # Показываем меню ПОБЕДИТЕЛЯ голосования
+    # Показываем категории меню ПОБЕДИТЕЛЯ голосования
     if winner_id:
         winner_restaurant = db.get_restaurant(winner_id)
         menu_items = db.get_restaurant_menu(winner_id)
         
         if winner_restaurant and menu_items:
             rest_emoji = winner_restaurant.get('emoji', '🍽️')
+            result_text += f"\n\n{rest_emoji} <b>Меню ресторана \"{winner_restaurant['name']}\":</b>\n"
+            result_text += "📋 Выберите категорию:"
             
-            # Используем красивое форматирование меню
-            menu_text = format_menu_beautiful(
-                winner_restaurant['name'],
-                rest_emoji,
-                menu_items,
-                mode="view"
-            )
-            result_text += menu_text
+            # Группируем блюда по категориям
+            categories = {}
+            for item in menu_items:
+                category = item['category']
+                if category not in categories:
+                    categories[category] = []
+                categories[category].append(item)
             
-            # Добавляем кнопку "Выбрать блюда"
-            keyboard = [[
+            # Создаём кнопки для категорий
+            keyboard = []
+            for category in sorted(categories.keys()):
+                category_emoji = get_category_emoji(category)
+                category_name = get_category_name(category, "ru")  # TODO: use user language
+                keyboard.append([
+                    InlineKeyboardButton(
+                        f"{category_emoji} {category_name} ({len(categories[category])})",
+                        callback_data=f"results_cat_{winner_id}_{category}"
+                    )
+                ])
+            
+            # Кнопка "Выбрать блюда"
+            keyboard.append([
                 InlineKeyboardButton("🛒 Выбрать блюда", callback_data=f"order_from_{winner_id}")
-            ]]
+            ])
+            
             reply_markup = InlineKeyboardMarkup(keyboard)
             await update.message.reply_text(result_text, parse_mode='HTML', reply_markup=reply_markup)
         else:
@@ -429,33 +443,99 @@ async def show_results_callback(update: Update, context: ContextTypes.DEFAULT_TY
     
     result_text += f"\n👥 Участников: {len(participants)}"
     
-    # Показываем меню ПОБЕДИТЕЛЯ голосования
+    # Показываем категории меню ПОБЕДИТЕЛЯ голосования
+    keyboard = []
     if winner_id:
         winner_restaurant = db.get_restaurant(winner_id)
         menu_items = db.get_restaurant_menu(winner_id)
         
         if winner_restaurant and menu_items:
             rest_emoji = winner_restaurant.get('emoji', '🍽️')
+            result_text += f"\n\n{rest_emoji} <b>Меню ресторана \"{winner_restaurant['name']}\":</b>\n"
+            result_text += "📋 Выберите категорию:"
             
-            # Используем красивое форматирование меню
-            menu_text = format_menu_beautiful(
-                winner_restaurant['name'],
-                rest_emoji,
-                menu_items,
-                mode="view"
-            )
-            result_text += menu_text
+            # Группируем блюда по категориям
+            categories = {}
+            for item in menu_items:
+                category = item['category']
+                if category not in categories:
+                    categories[category] = []
+                categories[category].append(item)
+            
+            # Создаём кнопки для категорий
+            for category in sorted(categories.keys()):
+                category_emoji = get_category_emoji(category)
+                category_name = get_category_name(category, "ru")  # TODO: use user language
+                keyboard.append([
+                    InlineKeyboardButton(
+                        f"{category_emoji} {category_name} ({len(categories[category])})",
+                        callback_data=f"results_cat_{winner_id}_{category}"
+                    )
+                ])
+            
+            # Кнопка "Выбрать блюда"
+            keyboard.append([
+                InlineKeyboardButton("🛒 Выбрать блюда", callback_data=f"order_from_{winner_id}")
+            ])
     
-    # Добавляем кнопки (с кнопкой "Выбрать блюда")
-    keyboard = []
-    if winner_id:
-        keyboard.append([
-            InlineKeyboardButton("🛒 Выбрать блюда", callback_data=f"order_from_{winner_id}")
-        ])
+    # Добавляем навигационные кнопки
     keyboard.append([
         InlineKeyboardButton("👥 Участники", callback_data="show_participants"),
         InlineKeyboardButton("🏠 К голосованию", callback_data="back_to_voting")
     ])
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await query.edit_message_text(result_text, parse_mode='HTML', reply_markup=reply_markup)
+
+
+async def show_results_category_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Показать блюда из конкретной категории в результатах"""
+    query = update.callback_query
+    await query.answer()
+    
+    # Парсим callback_data: results_cat_{restaurant_id}_{category}
+    parts = query.data.split('_', 3)
+    if len(parts) < 4:
+        await query.answer("❌ Ошибка данных", show_alert=True)
+        return
+    
+    restaurant_id = int(parts[2])
+    category = parts[3]
+    
+    restaurant = db.get_restaurant(restaurant_id)
+    menu_items = db.get_restaurant_menu(restaurant_id)
+    
+    if not restaurant or not menu_items:
+        await query.answer("❌ Меню не найдено", show_alert=True)
+        return
+    
+    # Фильтруем блюда по категории
+    category_items = [item for item in menu_items if item['category'] == category]
+    
+    if not category_items:
+        await query.answer("❌ Блюда не найдены", show_alert=True)
+        return
+    
+    rest_emoji = restaurant.get('emoji', '🍽️')
+    category_emoji = get_category_emoji(category)
+    category_name = get_category_name(category, "ru")  # TODO: use user language
+    
+    # Формируем текст с блюдами
+    result_text = f"{rest_emoji} <b>Ресторан \"{restaurant['name']}\"</b>\n"
+    result_text += f"{category_emoji} <b>{category_name}</b>\n\n"
+    
+    for idx, item in enumerate(category_items, 1):
+        result_text += f"{idx}. <b>{item['name']}</b>\n"
+        if item.get('description'):
+            result_text += f"   <i>{item['description']}</i>\n"
+        result_text += f"   💰 {item['price']} ֏\n\n"
+    
+    # Кнопка "Назад к категориям"
+    keyboard = [
+        [InlineKeyboardButton("◀️ К категориям", callback_data="show_results")],
+        [InlineKeyboardButton("🛒 Выбрать блюда", callback_data=f"order_from_{restaurant_id}")],
+        [InlineKeyboardButton("🏠 К голосованию", callback_data="back_to_voting")]
+    ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     await query.edit_message_text(result_text, parse_mode='HTML', reply_markup=reply_markup)
