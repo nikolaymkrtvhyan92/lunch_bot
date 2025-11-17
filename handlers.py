@@ -491,7 +491,7 @@ async def show_results_callback(update: Update, context: ContextTypes.DEFAULT_TY
 
 
 async def show_results_category_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Показать блюда из конкретной категории в результатах"""
+    """Показать блюда из конкретной категории в результатах (каждое с фото)"""
     query = update.callback_query
     await query.answer()
     
@@ -525,25 +525,132 @@ async def show_results_category_callback(update: Update, context: ContextTypes.D
     category_emoji = get_category_emoji(category)
     category_name = get_category_name(category, lang)
     
-    # Формируем текст с блюдами
-    result_text = f"{rest_emoji} <b>{get_text('menu_restaurant', lang)} \"{restaurant['name']}\"</b>\n"
-    result_text += f"{category_emoji} <b>{category_name}</b>\n\n"
+    # Удаляем предыдущее сообщение
+    try:
+        await query.message.delete()
+    except:
+        pass
     
+    # Отправляем заголовок категории
+    header_text = f"{rest_emoji} <b>{get_text('menu_restaurant', lang)} \"{restaurant['name']}\"</b>\n"
+    header_text += f"{category_emoji} <b>{category_name}</b>\n\n"
+    header_text += f"📋 {len(category_items)} блюд в категории"
+    
+    await update.effective_chat.send_message(header_text, parse_mode='HTML')
+    
+    # Отправляем каждое блюдо как отдельную карточку с фото
     for idx, item in enumerate(category_items, 1):
-        result_text += f"{idx}. <b>{item['name']}</b>\n"
-        if item.get('description'):
-            result_text += f"   <i>{item['description']}</i>\n"
-        result_text += f"   💰 {item['price']} ֏\n\n"
+        await send_dish_card(
+            update.effective_chat.id,
+            item,
+            restaurant_id,
+            idx,
+            len(category_items),
+            category,
+            lang,
+            context
+        )
     
-    # Кнопка "Назад к категориям"
-    keyboard = [
+    # Отправляем финальное сообщение с кнопками навигации
+    final_keyboard = [
         [InlineKeyboardButton(get_text('back_to_categories', lang), callback_data="show_results")],
         [InlineKeyboardButton(get_text('btn_select_dishes', lang), callback_data=f"order_from_{restaurant_id}")],
         [InlineKeyboardButton(get_text('back_to_voting', lang), callback_data="back_to_voting")]
     ]
+    final_markup = InlineKeyboardMarkup(final_keyboard)
+    
+    await update.effective_chat.send_message(
+        f"✅ Показано {len(category_items)} блюд",
+        reply_markup=final_markup
+    )
+
+
+async def send_dish_card(chat_id, item, restaurant_id, index, total, category, lang, context):
+    """Отправить карточку блюда с фото"""
+    
+    # Формируем текст карточки
+    card_text = f"<b>{item['name']}</b>\n"
+    
+    # Добавляем бейджи (если есть)
+    if item.get('badges'):
+        badges = item['badges'].split(',')
+        badge_emojis = {
+            'new': '🆕',
+            'hit': '🔥',
+            'spicy': '🌶️',
+            'vegan': '🌱',
+            'discount': '💰'
+        }
+        badge_line = ' '.join([badge_emojis.get(b.strip(), '⭐') for b in badges])
+        card_text += f"{badge_line}\n"
+    
+    # Описание
+    if item.get('description'):
+        card_text += f"\n<i>{item['description']}</i>\n"
+    
+    # Цена
+    card_text += f"\n💰 <b>{int(item['price'])} ֏</b>"
+    
+    # Кнопки
+    keyboard = [
+        [InlineKeyboardButton(
+            f"➕ {get_text('added_to_cart', lang).replace('✅ ', '')}",
+            callback_data=f"add_item_{restaurant_id}_{item['id']}_{category}"
+        )]
+    ]
+    
+    # Добавляем навигацию если не последнее блюдо
+    if index < total:
+        keyboard.append([
+            InlineKeyboardButton("⏭️ Следующее блюдо", callback_data=f"next_dish_{index}")
+        ])
+    
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    await query.edit_message_text(result_text, parse_mode='HTML', reply_markup=reply_markup)
+    # Отправляем фото если есть, иначе просто текст
+    photo_url = item.get('photo_url')
+    
+    if photo_url:
+        try:
+            await context.bot.send_photo(
+                chat_id=chat_id,
+                photo=photo_url,
+                caption=card_text,
+                parse_mode='HTML',
+                reply_markup=reply_markup
+            )
+        except Exception as e:
+            # Если ошибка с фото, отправляем просто текст
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=f"📸 [Фото недоступно]\n\n{card_text}",
+                parse_mode='HTML',
+                reply_markup=reply_markup
+            )
+    else:
+        # Нет фото - отправляем текст с placeholder
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=f"🍽️ <b>{category_name_short(item.get('category', ''))}</b>\n\n{card_text}",
+            parse_mode='HTML',
+            reply_markup=reply_markup
+        )
+
+
+def category_name_short(category):
+    """Короткое название категории для emoji"""
+    emoji_map = {
+        'Холодные закуски': '🥗',
+        'Горячие закуски': '🔥',
+        'Салаты': '🥗',
+        'Супы': '🍲',
+        'Шашлыки': '🍖',
+        'Горячие блюда': '🍳',
+        'Гарниры': '🍚',
+        'Десерты': '🍰',
+        'Напитки': '☕'
+    }
+    return emoji_map.get(category, '🍽️')
 
 
 # ========== Участники ==========

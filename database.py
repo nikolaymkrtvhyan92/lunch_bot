@@ -115,6 +115,18 @@ class Database:
             )
         ''')
         
+        # Миграция: добавление photo_url для блюд
+        try:
+            cursor.execute("ALTER TABLE menu_items ADD COLUMN photo_url TEXT")
+        except sqlite3.OperationalError:
+            pass  # Поле уже существует
+        
+        # Миграция: добавление badges (бейджи: новинка, хит, острое и т.д.)
+        try:
+            cursor.execute("ALTER TABLE menu_items ADD COLUMN badges TEXT")
+        except sqlite3.OperationalError:
+            pass  # Поле уже существует
+        
         # Таблица голосований
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS polls (
@@ -428,15 +440,16 @@ class Database:
     # ========== Меню ==========
     
     def add_menu_item(self, restaurant_id: int, name: str, price: float, 
-                     description: str = None, category: str = None) -> int:
+                     description: str = None, category: str = None,
+                     photo_url: str = None, badges: str = None) -> int:
         """Добавить блюдо в меню"""
         conn = self.get_connection()
         cursor = conn.cursor()
         try:
             cursor.execute('''
-                INSERT INTO menu_items (restaurant_id, name, description, price, category)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (restaurant_id, name, description, price, category))
+                INSERT INTO menu_items (restaurant_id, name, description, price, category, photo_url, badges)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (restaurant_id, name, description, price, category, photo_url, badges))
             conn.commit()
             return cursor.lastrowid
         finally:
