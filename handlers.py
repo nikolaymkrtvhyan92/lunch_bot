@@ -384,8 +384,8 @@ async def results_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 InlineKeyboardButton(get_text('btn_select_dishes', lang), callback_data=f"order_from_{winner_id}")
             ])
             
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await update.message.reply_text(result_text, parse_mode='HTML', reply_markup=reply_markup)
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await update.message.reply_text(result_text, parse_mode='HTML', reply_markup=reply_markup)
         else:
             await update.message.reply_text(result_text, parse_mode='HTML')
     else:
