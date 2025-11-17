@@ -19,5 +19,9 @@ LUNCH_TIME = os.getenv('LUNCH_TIME', '12:00')
 TIMEZONE = os.getenv('TIMEZONE', 'Europe/Moscow')
 
 # База данных
-DATABASE_NAME = 'lunch_bot.db'
+# Используем /data/ на Railway (persistent volume), иначе текущую директорию
+if os.path.exists('/data'):
+    DATABASE_NAME = '/data/lunch_bot.db'
+else:
+    DATABASE_NAME = 'lunch_bot.db'
 
