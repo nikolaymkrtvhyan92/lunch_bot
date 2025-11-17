@@ -1028,7 +1028,7 @@ async def cancel_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ========== Система заказа блюд ==========
 
 async def order_from_restaurant_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработчик кнопки 'Выбрать блюда' - показывает меню для заказа"""
+    """Обработчик кнопки 'Выбрать блюда' - показывает КАТЕГОРИИ меню"""
     query = update.callback_query
     await query.answer()
     
@@ -1050,16 +1050,7 @@ async def order_from_restaurant_callback(update: Update, context: ContextTypes.D
     
     rest_emoji = restaurant.get('emoji', '🍽️')
     
-    # Используем красивое форматирование меню
-    text = format_menu_beautiful(
-        restaurant['name'],
-        rest_emoji,
-        menu_items,
-        mode="order"
-    )
-    
-    # Создаём кнопки для каждого блюда
-    keyboard = []
+    # Группируем по категориям
     categories = {}
     for item in menu_items:
         category = item['category'] or 'Основное меню'
@@ -1067,7 +1058,7 @@ async def order_from_restaurant_callback(update: Update, context: ContextTypes.D
             categories[category] = []
         categories[category].append(item)
     
-    # Определяем порядок категорий (такой же как в format_menu_beautiful)
+    # Определяем порядок категорий
     category_order = [
         "Холодные закуски", "Горячие закуски", "Салаты", "Супы",
         "Шашлыки", "Горячие блюда", "Гарниры", "Десерты", "Напитки"
@@ -1076,25 +1067,100 @@ async def order_from_restaurant_callback(update: Update, context: ContextTypes.D
     sorted_categories = []
     for cat in category_order:
         if cat in categories:
-            sorted_categories.append((cat, categories[cat]))
-    for cat, items in categories.items():
+            sorted_categories.append(cat)
+    for cat in categories.keys():
         if cat not in category_order:
-            sorted_categories.append((cat, items))
+            sorted_categories.append(cat)
     
-    for category, items in sorted_categories:
-        for item in items:
-            price = f"{int(item['price'])}֏" if item['price'] else ""
-            keyboard.append([
-                InlineKeyboardButton(
-                    f"➕ {item['name']} ({price})",
-                    callback_data=f"add_item_{item['id']}"
-                )
-            ])
+    # Формируем текст
+    text = f"╔═══════════════════════╗\n"
+    text += f"   🛒 <b>{restaurant['name'].upper()}</b> {rest_emoji}\n"
+    text += f"╚═══════════════════════╝\n\n"
+    text += "📋 <b>Выберите категорию:</b>"
+    
+    # Создаём кнопки для каждой категории
+    keyboard = []
+    for category in sorted_categories:
+        category_emoji = get_category_emoji(category)
+        item_count = len(categories[category])
+        keyboard.append([
+            InlineKeyboardButton(
+                f"{category_emoji} {category} ({item_count})",
+                callback_data=f"order_cat_{restaurant_id}_{category}"
+            )
+        ])
     
     # Добавляем кнопки управления
     keyboard.append([
         InlineKeyboardButton("🛒 Моя корзина", callback_data=f"show_cart_{restaurant_id}"),
         InlineKeyboardButton("🏠 Назад", callback_data="show_results")
+    ])
+    
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await query.edit_message_text(text, parse_mode='HTML', reply_markup=reply_markup)
+
+
+async def show_category_dishes_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Показать блюда конкретной категории для заказа"""
+    query = update.callback_query
+    await query.answer()
+    
+    # Парсим callback_data: order_cat_{restaurant_id}_{category}
+    parts = query.data.split('_', 3)
+    restaurant_id = int(parts[2])
+    category = parts[3]
+    
+    user_id = update.effective_user.id
+    
+    poll = db.get_active_poll()
+    if not poll:
+        await query.edit_message_text("❌ Голосование завершено.")
+        return
+    
+    poll_id = poll['id']
+    restaurant = db.get_restaurant(restaurant_id)
+    menu_items = db.get_restaurant_menu(restaurant_id)
+    
+    # Фильтруем блюда по категории
+    category_items = [item for item in menu_items if (item['category'] or 'Основное меню') == category]
+    
+    if not category_items:
+        await query.edit_message_text(f"❌ В категории {category} нет блюд.")
+        return
+    
+    rest_emoji = restaurant.get('emoji', '🍽️')
+    category_emoji = get_category_emoji(category)
+    
+    # Формируем текст с блюдами
+    text = f"╔═══════════════════════╗\n"
+    text += f"   {rest_emoji} <b>{restaurant['name'].upper()}</b>\n"
+    text += f"╚═══════════════════════╝\n\n"
+    text += f"┌─ {category_emoji} <b>{category}</b>\n"
+    text += f"│\n"
+    
+    for item in category_items:
+        price = f"{int(item['price'])}" if item['price'] else "—"
+        text += f"│  • {item['name']}\n"
+        text += f"│    💰 <b>{price} ֏</b>\n"
+    
+    text += f"└{'─' * 25}\n\n"
+    text += "<i>Нажмите на блюдо чтобы добавить в корзину</i>"
+    
+    # Создаём кнопки для каждого блюда
+    keyboard = []
+    for item in category_items:
+        price = f"{int(item['price'])}֏" if item['price'] else ""
+        keyboard.append([
+            InlineKeyboardButton(
+                f"➕ {item['name']} ({price})",
+                callback_data=f"add_item_{item['id']}_{restaurant_id}_{category}"
+            )
+        ])
+    
+    # Добавляем кнопки управления
+    keyboard.append([
+        InlineKeyboardButton("⬅️ Назад к категориям", callback_data=f"order_from_{restaurant_id}"),
+        InlineKeyboardButton("🛒 Корзина", callback_data=f"show_cart_{restaurant_id}")
     ])
     
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -1107,7 +1173,18 @@ async def add_item_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer("✅ Добавлено в корзину!")
     
     user_id = update.effective_user.id
-    menu_item_id = int(query.data.split('_')[2])
+    
+    # Парсим callback_data: add_item_{menu_item_id}_{restaurant_id}_{category}
+    parts = query.data.split('_', 4)
+    menu_item_id = int(parts[2])
+    
+    # Если есть restaurant_id и category - запоминаем их
+    if len(parts) >= 5:
+        restaurant_id = int(parts[3])
+        category = parts[4]
+    else:
+        restaurant_id = None
+        category = None
     
     poll = db.get_active_poll()
     if not poll:
@@ -1118,6 +1195,16 @@ async def add_item_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # Добавляем в корзину (quantity=1)
     db.add_order(poll_id, user_id, menu_item_id, quantity=1)
+    
+    # Возвращаемся к той же категории
+    if restaurant_id and category:
+        # Обновляем callback_data чтобы вернуться к категории
+        context.user_data['last_category'] = category
+        context.user_data['last_restaurant'] = restaurant_id
+        
+        # Симулируем нажатие кнопки категории
+        query.data = f"order_cat_{restaurant_id}_{category}"
+        await show_category_dishes_callback(update, context)
 
 
 async def show_cart_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):

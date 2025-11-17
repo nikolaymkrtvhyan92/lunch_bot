@@ -45,6 +45,7 @@ from handlers import (
     cancel_command,
     # Новые обработчики системы заказа
     order_from_restaurant_callback,
+    show_category_dishes_callback,
     add_item_callback,
     show_cart_callback,
     finish_order_callback,
@@ -193,7 +194,8 @@ def main():
     
     # Система заказа блюд
     application.add_handler(CallbackQueryHandler(order_from_restaurant_callback, pattern=r'^order_from_\d+$'))
-    application.add_handler(CallbackQueryHandler(add_item_callback, pattern=r'^add_item_\d+$'))
+    application.add_handler(CallbackQueryHandler(show_category_dishes_callback, pattern=r'^order_cat_'))
+    application.add_handler(CallbackQueryHandler(add_item_callback, pattern=r'^add_item_'))
     application.add_handler(CallbackQueryHandler(show_cart_callback, pattern=r'^show_cart_\d+$'))
     application.add_handler(CallbackQueryHandler(finish_order_callback, pattern=r'^finish_order$'))
     application.add_handler(CallbackQueryHandler(clear_cart_callback, pattern=r'^clear_cart$'))
