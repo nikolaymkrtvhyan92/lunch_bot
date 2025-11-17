@@ -16,6 +16,7 @@ from telegram.ext import (
 import config
 from database import Database
 from scheduler import LunchScheduler
+from seed_data import seed_restaurants
 
 # Импортируем обработчики
 from handlers import (
@@ -105,6 +106,12 @@ def main():
     # Инициализация базы данных
     db = Database()
     logger.info("База данных инициализирована")
+    
+    # Автоматическое добавление базовых данных если БД пустая
+    try:
+        seed_restaurants()
+    except Exception as e:
+        logger.error(f"Ошибка при seed данных: {e}")
     
     # Создаем приложение
     application = Application.builder().token(config.BOT_TOKEN).build()

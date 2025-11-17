@@ -19,9 +19,14 @@ LUNCH_TIME = os.getenv('LUNCH_TIME', '12:00')
 TIMEZONE = os.getenv('TIMEZONE', 'Europe/Moscow')
 
 # База данных
-# Используем /data/ на Railway (persistent volume), иначе текущую директорию
-if os.path.exists('/data'):
-    DATABASE_NAME = '/data/lunch_bot.db'
+# Если есть DATABASE_URL (PostgreSQL на Railway), используем его
+# Иначе используем SQLite локально
+DATABASE_URL = os.getenv('DATABASE_URL')
+if DATABASE_URL:
+    # Railway PostgreSQL
+    DATABASE_TYPE = 'postgresql'
 else:
+    # SQLite локально
+    DATABASE_TYPE = 'sqlite'
     DATABASE_NAME = 'lunch_bot.db'
 
