@@ -1578,6 +1578,7 @@ async def change_language_callback(update: Update, context: ContextTypes.DEFAULT
 async def set_language_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Установить выбранный язык"""
     query = update.callback_query
+    user = update.effective_user
     
     # Извлекаем код языка из callback_data (set_lang_ru -> ru)
     lang_code = query.data.split('_')[2]
@@ -1587,8 +1588,39 @@ async def set_language_callback(update: Update, context: ContextTypes.DEFAULT_TY
     
     await query.answer(get_text('language_changed', lang_code))
     
-    # Возвращаемся на главное меню с новым языком
-    await start_command(update, context)
+    # Формируем приветственное сообщение на новом языке
+    welcome_text = f"""
+{get_text('welcome_title', lang_code)}
+
+{get_text('welcome_text', lang_code)}
+
+<b>{get_text('what_i_can', lang_code)}</b>
+{get_text('feature_voting', lang_code)}
+{get_text('feature_menu', lang_code)}
+{get_text('feature_participants', lang_code)}
+{get_text('feature_reminders', lang_code)}
+{get_text('feature_orders', lang_code)}
+
+<b>{get_text('choose_action', lang_code)}</b>
+"""
+    
+    # Создаём интерактивное меню
+    keyboard = [
+        [InlineKeyboardButton(get_text('btn_start_voting', lang_code), callback_data="start_lunch")],
+        [InlineKeyboardButton(get_text('btn_menu_list', lang_code), callback_data="show_menu_list")],
+        [InlineKeyboardButton(get_text('btn_results', lang_code), callback_data="show_results"),
+         InlineKeyboardButton(get_text('btn_participants', lang_code), callback_data="show_participants")],
+        [InlineKeyboardButton(get_text('btn_my_order', lang_code), callback_data="show_my_order")],
+        [InlineKeyboardButton(get_text('btn_language', lang_code), callback_data="change_language")],
+    ]
+    
+    # Добавляем админ панель если это админ
+    if user.id == int(config.ADMIN_ID):
+        keyboard.append([InlineKeyboardButton(get_text('btn_admin_panel', lang_code), callback_data="admin_panel")])
+    
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await query.edit_message_text(welcome_text, parse_mode='HTML', reply_markup=reply_markup)
 
 
 async def back_to_main_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1596,6 +1628,40 @@ async def back_to_main_callback(update: Update, context: ContextTypes.DEFAULT_TY
     query = update.callback_query
     await query.answer()
     
-    # Вызываем start_command для показа главного меню
-    await start_command(update, context)
+    user = update.effective_user
+    lang = db.get_user_language(user.id)
+    
+    # Формируем приветственное сообщение
+    welcome_text = f"""
+{get_text('welcome_title', lang)}
+
+{get_text('welcome_text', lang)}
+
+<b>{get_text('what_i_can', lang)}</b>
+{get_text('feature_voting', lang)}
+{get_text('feature_menu', lang)}
+{get_text('feature_participants', lang)}
+{get_text('feature_reminders', lang)}
+{get_text('feature_orders', lang)}
+
+<b>{get_text('choose_action', lang)}</b>
+"""
+    
+    # Создаём интерактивное меню
+    keyboard = [
+        [InlineKeyboardButton(get_text('btn_start_voting', lang), callback_data="start_lunch")],
+        [InlineKeyboardButton(get_text('btn_menu_list', lang), callback_data="show_menu_list")],
+        [InlineKeyboardButton(get_text('btn_results', lang), callback_data="show_results"),
+         InlineKeyboardButton(get_text('btn_participants', lang), callback_data="show_participants")],
+        [InlineKeyboardButton(get_text('btn_my_order', lang), callback_data="show_my_order")],
+        [InlineKeyboardButton(get_text('btn_language', lang), callback_data="change_language")],
+    ]
+    
+    # Добавляем админ панель если это админ
+    if user.id == int(config.ADMIN_ID):
+        keyboard.append([InlineKeyboardButton(get_text('btn_admin_panel', lang), callback_data="admin_panel")])
+    
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await query.edit_message_text(welcome_text, parse_mode='HTML', reply_markup=reply_markup)
 
