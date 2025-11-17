@@ -45,7 +45,9 @@ def format_menu_beautiful(restaurant_name: str, restaurant_emoji: str, menu_item
     mode: "view" - просмотр меню, "order" - выбор блюд для заказа
     """
     if mode == "order":
-        text = f"🛒 <b>Меню {restaurant_emoji} {restaurant_name}</b>\n"
+        text = f"╔═══════════════════════╗\n"
+        text += f"   🛒 <b>МЕНЮ {restaurant_emoji} {restaurant_name.upper()}</b>\n"
+        text += f"╚═══════════════════════╝\n"
         text += f"<i>Нажмите на блюдо чтобы добавить в корзину</i>\n\n"
     else:
         text = f"\n╔═══════════════════════╗\n"
@@ -84,27 +86,20 @@ def format_menu_beautiful(restaurant_name: str, restaurant_emoji: str, menu_item
         if cat not in category_order:
             sorted_categories.append((cat, items))
     
-    # Выводим категории
+    # Выводим категории с красивым форматированием в обоих режимах
     for idx, (category, items) in enumerate(sorted_categories):
         category_emoji = get_category_emoji(category)
         
-        if mode == "view":
-            text += f"┌─ {category_emoji} <b>{category}</b>\n"
-            text += f"│\n"
-            
-            for item in items:
-                price = f"{int(item['price'])}" if item['price'] else "—"
-                # Форматируем цену красиво
-                text += f"│  • {item['name']}\n"
-                text += f"│    💰 <b>{price} ֏</b>\n"
-            
-            text += f"└{'─' * 25}\n\n"
-        else:
-            text += f"{category_emoji} <b>{category}</b>\n"
-            for item in items:
-                price = f"{int(item['price'])} ֏" if item['price'] else ""
-                text += f"  • {item['name']} — {price}\n"
-            text += "\n"
+        text += f"┌─ {category_emoji} <b>{category}</b>\n"
+        text += f"│\n"
+        
+        for item in items:
+            price = f"{int(item['price'])}" if item['price'] else "—"
+            # Форматируем цену красиво
+            text += f"│  • {item['name']}\n"
+            text += f"│    💰 <b>{price} ֏</b>\n"
+        
+        text += f"└{'─' * 25}\n\n"
     
     return text
 
