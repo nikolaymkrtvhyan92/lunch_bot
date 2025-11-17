@@ -916,44 +916,6 @@ async def show_menu_list_callback(update: Update, context: ContextTypes.DEFAULT_
     )
 
 
-async def back_to_main_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Вернуться на главную - показать список ресторанов для меню"""
-    query = update.callback_query
-    await query.answer()
-    
-    restaurants = db.get_all_restaurants()
-    
-    if not restaurants:
-        keyboard = [[
-            InlineKeyboardButton("🏠 К голосованию", callback_data="back_to_voting")
-        ]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text("❌ Нет доступных ресторанов.", reply_markup=reply_markup)
-        return
-    
-    keyboard = []
-    for restaurant in restaurants:
-        keyboard.append([
-            InlineKeyboardButton(
-                f"📋 {restaurant['name']}", 
-                callback_data=f"menu_{restaurant['id']}"
-            )
-        ])
-    
-    # Добавляем кнопку возврата
-    keyboard.append([
-        InlineKeyboardButton("🏠 К голосованию", callback_data="back_to_voting")
-    ])
-    
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    
-    await query.edit_message_text(
-        "📋 <b>Выберите ресторан для просмотра меню:</b>",
-        reply_markup=reply_markup,
-        parse_mode='HTML'
-    )
-
-
 async def back_to_voting_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Вернуться к голосованию за рестораны"""
     query = update.callback_query

@@ -44,7 +44,10 @@ def require_access(func):
 
 Вы получите уведомление когда доступ будет предоставлен.
 """
-            await update.message.reply_text(text, parse_mode='HTML')
+            if update.callback_query:
+                await update.callback_query.answer(text[:200], show_alert=True)
+            else:
+                await update.message.reply_text(text, parse_mode='HTML')
             return
         
         elif status == 'rejected':
@@ -56,7 +59,10 @@ def require_access(func):
 
 Если вы считаете это ошибкой, свяжитесь с администратором компании.
 """
-            await update.message.reply_text(text, parse_mode='HTML')
+            if update.callback_query:
+                await update.callback_query.answer(text[:200], show_alert=True)
+            else:
+                await update.message.reply_text(text, parse_mode='HTML')
             return
         
         else:
@@ -88,7 +94,11 @@ Username: @{user.username or 'не указан'}
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    await update.message.reply_text(text, parse_mode='HTML', reply_markup=reply_markup)
+    # Проверяем тип update - message или callback query
+    if update.callback_query:
+        await update.callback_query.edit_message_text(text, parse_mode='HTML', reply_markup=reply_markup)
+    else:
+        await update.message.reply_text(text, parse_mode='HTML', reply_markup=reply_markup)
 
 
 async def request_access_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
