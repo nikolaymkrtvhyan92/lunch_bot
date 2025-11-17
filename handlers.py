@@ -310,11 +310,12 @@ async def vote_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def results_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Команда /results - показать результаты голосования"""
     user_id = update.effective_user.id
+    lang = db.get_user_language(user_id)
     
     poll = db.get_active_poll()
     
     if not poll:
-        await update.message.reply_text("❌ Сегодня голосование еще не начато. Используйте /lunch")
+        await update.message.reply_text(get_text('voting_not_started', lang))
         return
     
     poll_id = poll['id']
@@ -322,10 +323,10 @@ async def results_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     participants = db.get_participants(poll_id)
     
     if not votes or all(v[2] == 0 for v in votes):
-        await update.message.reply_text("📊 Пока никто не проголосовал.")
+        await update.message.reply_text(get_text('no_votes_yet', lang))
         return
     
-    result_text = "📊 <b>Результаты голосования:</b>\n\n"
+    result_text = f"{get_text('voting_results', lang)}\n\n"
     
     # Находим победителя
     winner_id = None
@@ -346,7 +347,7 @@ async def results_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 max_votes = vote_count
                 winner_id = rest_id
     
-    result_text += f"👥 Участников обеда: {len(participants)}\n"
+    result_text += f"\n{get_text('participants_count', lang)} {len(participants)}\n"
     
     # Показываем категории меню ПОБЕДИТЕЛЯ голосования
     if winner_id:
@@ -355,8 +356,8 @@ async def results_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         if winner_restaurant and menu_items:
             rest_emoji = winner_restaurant.get('emoji', '🍽️')
-            result_text += f"\n\n{rest_emoji} <b>Меню ресторана \"{winner_restaurant['name']}\":</b>\n"
-            result_text += "📋 Выберите категорию:"
+            result_text += f"\n{rest_emoji} <b>{get_text('menu_restaurant', lang)} \"{winner_restaurant['name']}\":</b>\n"
+            result_text += get_text('select_category', lang)
             
             # Группируем блюда по категориям
             categories = {}
@@ -370,7 +371,7 @@ async def results_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             keyboard = []
             for category in sorted(categories.keys()):
                 category_emoji = get_category_emoji(category)
-                category_name = get_category_name(category, "ru")  # TODO: use user language
+                category_name = get_category_name(category, lang)
                 keyboard.append([
                     InlineKeyboardButton(
                         f"{category_emoji} {category_name} ({len(categories[category])})",
@@ -380,11 +381,11 @@ async def results_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
             # Кнопка "Выбрать блюда"
             keyboard.append([
-                InlineKeyboardButton("🛒 Выбрать блюда", callback_data=f"order_from_{winner_id}")
+                InlineKeyboardButton(get_text('btn_select_dishes', lang), callback_data=f"order_from_{winner_id}")
             ])
             
-            reply_markup = InlineKeyboardMarkup(keyboard)
-            await update.message.reply_text(result_text, parse_mode='HTML', reply_markup=reply_markup)
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await update.message.reply_text(result_text, parse_mode='HTML', reply_markup=reply_markup)
         else:
             await update.message.reply_text(result_text, parse_mode='HTML')
     else:
@@ -397,15 +398,16 @@ async def show_results_callback(update: Update, context: ContextTypes.DEFAULT_TY
     await query.answer()
     
     user_id = update.effective_user.id
+    lang = db.get_user_language(user_id)
     
     poll = db.get_active_poll()
     
     if not poll:
         keyboard = [[
-            InlineKeyboardButton("🏠 На главную", callback_data="back_to_voting")
+            InlineKeyboardButton(get_text('to_main_menu', lang), callback_data="back_to_voting")
         ]]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text("❌ Голосование не найдено.", reply_markup=reply_markup)
+        await query.edit_message_text(get_text('voting_not_found', lang), reply_markup=reply_markup)
         return
     
     poll_id = poll['id']
@@ -414,13 +416,13 @@ async def show_results_callback(update: Update, context: ContextTypes.DEFAULT_TY
     
     if not votes or all(v[2] == 0 for v in votes):
         keyboard = [[
-            InlineKeyboardButton("🏠 К голосованию", callback_data="back_to_voting")
+            InlineKeyboardButton(get_text('back_to_voting', lang), callback_data="back_to_voting")
         ]]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text("📊 Пока никто не проголосовал.", reply_markup=reply_markup)
+        await query.edit_message_text(get_text('no_votes_yet', lang), reply_markup=reply_markup)
         return
     
-    result_text = "📊 <b>Результаты голосования:</b>\n\n"
+    result_text = f"{get_text('voting_results', lang)}\n\n"
     
     # Находим победителя
     winner_id = None
@@ -441,7 +443,7 @@ async def show_results_callback(update: Update, context: ContextTypes.DEFAULT_TY
                 max_votes = vote_count
                 winner_id = rest_id
     
-    result_text += f"\n👥 Участников: {len(participants)}"
+    result_text += f"\n{get_text('participants_count', lang)} {len(participants)}"
     
     # Показываем категории меню ПОБЕДИТЕЛЯ голосования
     keyboard = []
@@ -451,8 +453,8 @@ async def show_results_callback(update: Update, context: ContextTypes.DEFAULT_TY
         
         if winner_restaurant and menu_items:
             rest_emoji = winner_restaurant.get('emoji', '🍽️')
-            result_text += f"\n\n{rest_emoji} <b>Меню ресторана \"{winner_restaurant['name']}\":</b>\n"
-            result_text += "📋 Выберите категорию:"
+            result_text += f"\n\n{rest_emoji} <b>{get_text('menu_restaurant', lang)} \"{winner_restaurant['name']}\":</b>\n"
+            result_text += get_text('select_category', lang)
             
             # Группируем блюда по категориям
             categories = {}
@@ -465,7 +467,7 @@ async def show_results_callback(update: Update, context: ContextTypes.DEFAULT_TY
             # Создаём кнопки для категорий
             for category in sorted(categories.keys()):
                 category_emoji = get_category_emoji(category)
-                category_name = get_category_name(category, "ru")  # TODO: use user language
+                category_name = get_category_name(category, lang)
                 keyboard.append([
                     InlineKeyboardButton(
                         f"{category_emoji} {category_name} ({len(categories[category])})",
@@ -475,13 +477,13 @@ async def show_results_callback(update: Update, context: ContextTypes.DEFAULT_TY
             
             # Кнопка "Выбрать блюда"
             keyboard.append([
-                InlineKeyboardButton("🛒 Выбрать блюда", callback_data=f"order_from_{winner_id}")
+                InlineKeyboardButton(get_text('btn_select_dishes', lang), callback_data=f"order_from_{winner_id}")
             ])
     
     # Добавляем навигационные кнопки
     keyboard.append([
-        InlineKeyboardButton("👥 Участники", callback_data="show_participants"),
-        InlineKeyboardButton("🏠 К голосованию", callback_data="back_to_voting")
+        InlineKeyboardButton(get_text('btn_participants', lang), callback_data="show_participants"),
+        InlineKeyboardButton(get_text('back_to_voting', lang), callback_data="back_to_voting")
     ])
     reply_markup = InlineKeyboardMarkup(keyboard)
     
@@ -493,10 +495,13 @@ async def show_results_category_callback(update: Update, context: ContextTypes.D
     query = update.callback_query
     await query.answer()
     
+    user_id = update.effective_user.id
+    lang = db.get_user_language(user_id)
+    
     # Парсим callback_data: results_cat_{restaurant_id}_{category}
     parts = query.data.split('_', 3)
     if len(parts) < 4:
-        await query.answer("❌ Ошибка данных", show_alert=True)
+        await query.answer(get_text('error_loading', lang), show_alert=True)
         return
     
     restaurant_id = int(parts[2])
@@ -506,22 +511,22 @@ async def show_results_category_callback(update: Update, context: ContextTypes.D
     menu_items = db.get_restaurant_menu(restaurant_id)
     
     if not restaurant or not menu_items:
-        await query.answer("❌ Меню не найдено", show_alert=True)
+        await query.answer(get_text('no_menu', lang, name=restaurant['name'] if restaurant else ''), show_alert=True)
         return
     
     # Фильтруем блюда по категории
     category_items = [item for item in menu_items if item['category'] == category]
     
     if not category_items:
-        await query.answer("❌ Блюда не найдены", show_alert=True)
+        await query.answer(get_text('error_loading', lang), show_alert=True)
         return
     
     rest_emoji = restaurant.get('emoji', '🍽️')
     category_emoji = get_category_emoji(category)
-    category_name = get_category_name(category, "ru")  # TODO: use user language
+    category_name = get_category_name(category, lang)
     
     # Формируем текст с блюдами
-    result_text = f"{rest_emoji} <b>Ресторан \"{restaurant['name']}\"</b>\n"
+    result_text = f"{rest_emoji} <b>{get_text('menu_restaurant', lang)} \"{restaurant['name']}\"</b>\n"
     result_text += f"{category_emoji} <b>{category_name}</b>\n\n"
     
     for idx, item in enumerate(category_items, 1):
@@ -532,9 +537,9 @@ async def show_results_category_callback(update: Update, context: ContextTypes.D
     
     # Кнопка "Назад к категориям"
     keyboard = [
-        [InlineKeyboardButton("◀️ К категориям", callback_data="show_results")],
-        [InlineKeyboardButton("🛒 Выбрать блюда", callback_data=f"order_from_{restaurant_id}")],
-        [InlineKeyboardButton("🏠 К голосованию", callback_data="back_to_voting")]
+        [InlineKeyboardButton(get_text('back_to_categories', lang), callback_data="show_results")],
+        [InlineKeyboardButton(get_text('btn_select_dishes', lang), callback_data=f"order_from_{restaurant_id}")],
+        [InlineKeyboardButton(get_text('back_to_voting', lang), callback_data="back_to_voting")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
@@ -547,11 +552,12 @@ async def join_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Команда /join - записаться на обед"""
     user_id = update.effective_user.id
     user_name = update.effective_user.first_name
+    lang = db.get_user_language(user_id)
     
     poll = db.get_active_poll()
     
     if not poll:
-        await update.message.reply_text("❌ Сегодня голосование еще не начато. Используйте /lunch")
+        await update.message.reply_text(get_text('voting_not_started', lang))
         return
     
     poll_id = poll['id']
@@ -582,17 +588,20 @@ async def join_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def participants_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Команда /participants - список участников"""
+    user_id = update.effective_user.id
+    lang = db.get_user_language(user_id)
+    
     poll = db.get_active_poll()
     
     if not poll:
-        await update.message.reply_text("❌ Сегодня голосование еще не начато.")
+        await update.message.reply_text(get_text('voting_not_started', lang))
         return
     
     poll_id = poll['id']
     participants = db.get_participants(poll_id)
     
     if not participants:
-        await update.message.reply_text("👥 Пока никто не записался на обед.")
+        await update.message.reply_text(f"👥 {get_text('no_participants', lang)}")
         return
     
     participants_text = "👥 <b>Участники обеда:</b>\n\n"
@@ -658,35 +667,40 @@ async def leave_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     
     user_id = update.effective_user.id
+    lang = db.get_user_language(user_id)
+    
     poll = db.get_active_poll()
     
     if not poll:
         keyboard = [[
-            InlineKeyboardButton("🏠 К голосованию", callback_data="back_to_voting")
+            InlineKeyboardButton(get_text('back_to_voting', lang), callback_data="back_to_voting")
         ]]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text("❌ Голосование не найдено.", reply_markup=reply_markup)
+        await query.edit_message_text(get_text('voting_not_found', lang), reply_markup=reply_markup)
         return
     
     poll_id = poll['id']
     db.remove_participant(poll_id, user_id)
     
     keyboard = [[
-        InlineKeyboardButton("🏠 К голосованию", callback_data="back_to_voting")
+        InlineKeyboardButton(get_text('back_to_voting', lang), callback_data="back_to_voting")
     ]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    await query.edit_message_text("✅ Вы отменили участие в обеде.", reply_markup=reply_markup)
+    await query.edit_message_text(get_text('participation_cancelled', lang), reply_markup=reply_markup)
 
 
 # ========== Меню ==========
 
 async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Команда /menu - показать меню ресторана"""
+    user_id = update.effective_user.id
+    lang = db.get_user_language(user_id)
+    
     restaurants = db.get_all_restaurants()
     
     if not restaurants:
-        await update.message.reply_text("❌ Нет доступных ресторанов.")
+        await update.message.reply_text(get_text('no_restaurants_available', lang))
         return
     
     keyboard = []
@@ -1364,20 +1378,22 @@ async def clear_cart_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
 async def my_order_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Команда /myorder - показать свой заказ"""
     user_id = update.effective_user.id
+    lang = db.get_user_language(user_id)
+    
     poll = db.get_active_poll()
     
     if not poll:
-        await update.message.reply_text("❌ Сегодня голосование еще не начато.")
+        await update.message.reply_text(get_text('voting_not_started', lang))
         return
     
     poll_id = poll['id']
     orders = db.get_user_orders(poll_id, user_id)
     
     if not orders:
-        await update.message.reply_text("🛒 У вас пока нет заказа.\n\nИспользуйте /results чтобы выбрать блюда.")
+        await update.message.reply_text(get_text('no_order_yet', lang))
         return
     
-    text = "📋 <b>Ваш текущий заказ:</b>\n\n"
+    text = f"📋 <b>{get_text('your_cart', lang)}</b>\n\n"
     total = 0
     restaurant_name = orders[0]['restaurant_name'] if orders else ""
     
@@ -1386,8 +1402,8 @@ async def my_order_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         total += price
         text += f"• {order['name']} x{order['quantity']} — {int(price)}֏\n"
     
-    text += f"\n🏪 Ресторан: <b>{restaurant_name}</b>"
-    text += f"\n💰 <b>Итого: {int(total)}֏</b>"
+    text += f"\n🏪 {get_text('menu_restaurant', lang)}: <b>{restaurant_name}</b>"
+    text += f"\n💰 <b>{get_text('total', lang)} {int(total)}֏</b>"
     
     await update.message.reply_text(text, parse_mode='HTML')
 
