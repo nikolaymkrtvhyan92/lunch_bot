@@ -90,6 +90,22 @@ from admin_handlers import (
     MENU_ITEM_CATEGORY
 )
 
+# Импортируем систему контроля доступа
+from access_control import (
+    request_access_callback,
+    receive_department,
+    cancel_access_callback,
+    REQUEST_DEPARTMENT,
+)
+from admin_access import (
+    add_user_command,
+    remove_user_command,
+    list_users_command,
+    pending_users_callback,
+    approve_user_callback,
+    reject_user_callback,
+)
+
 # Настройка логирования
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -129,6 +145,26 @@ def main():
     application.add_handler(CommandHandler("participants", participants_command))
     application.add_handler(CommandHandler("menu", menu_command))
     application.add_handler(CommandHandler("cancel", cancel_command))
+    
+    # ========== Система контроля доступа ==========
+    
+    # ConversationHandler для запроса доступа
+    access_request_handler = ConversationHandler(
+        entry_points=[CallbackQueryHandler(request_access_callback, pattern=r'^request_access$')],
+        states={
+            REQUEST_DEPARTMENT: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_department)],
+        },
+        fallbacks=[CallbackQueryHandler(cancel_access_callback, pattern=r'^cancel_access$')],
+    )
+    application.add_handler(access_request_handler)
+    
+    # Админ команды для управления доступом
+    application.add_handler(CommandHandler("add_user", add_user_command))
+    application.add_handler(CommandHandler("remove_user", remove_user_command))
+    application.add_handler(CommandHandler("list_users", list_users_command))
+    application.add_handler(CallbackQueryHandler(pending_users_callback, pattern=r'^pending_users$'))
+    application.add_handler(CallbackQueryHandler(approve_user_callback, pattern=r'^approve_user_'))
+    application.add_handler(CallbackQueryHandler(reject_user_callback, pattern=r'^reject_user_'))
     
     # ========== Обработчики команд для администраторов ==========
     

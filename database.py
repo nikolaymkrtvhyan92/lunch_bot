@@ -32,6 +32,10 @@ class Database:
                 last_name TEXT,
                 is_admin INTEGER DEFAULT 0,
                 language TEXT DEFAULT 'ru',
+                access_status TEXT DEFAULT 'pending',
+                requested_at TIMESTAMP,
+                approved_at TIMESTAMP,
+                department TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
@@ -41,6 +45,34 @@ class Database:
             cursor.execute("ALTER TABLE users ADD COLUMN language TEXT DEFAULT 'ru'")
         except sqlite3.OperationalError:
             pass  # Поле уже существует
+        
+        # Миграция: добавление полей для whitelist системы
+        try:
+            cursor.execute("ALTER TABLE users ADD COLUMN access_status TEXT DEFAULT 'pending'")
+        except sqlite3.OperationalError:
+            pass
+        
+        try:
+            cursor.execute("ALTER TABLE users ADD COLUMN requested_at TIMESTAMP")
+        except sqlite3.OperationalError:
+            pass
+        
+        try:
+            cursor.execute("ALTER TABLE users ADD COLUMN approved_at TIMESTAMP")
+        except sqlite3.OperationalError:
+            pass
+        
+        try:
+            cursor.execute("ALTER TABLE users ADD COLUMN department TEXT")
+        except sqlite3.OperationalError:
+            pass
+        
+        # Устанавливаем админу статус "approved"
+        try:
+            cursor.execute("UPDATE users SET access_status = 'approved' WHERE is_admin = 1")
+            conn.commit()
+        except:
+            pass
         
         # Таблица ресторанов
         cursor.execute('''
@@ -189,6 +221,87 @@ class Database:
         try:
             cursor.execute('UPDATE users SET language = ? WHERE user_id = ?', (language, user_id))
             conn.commit()
+        finally:
+            conn.close()
+    
+    def get_user_access_status(self, user_id: int) -> str:
+        """Получить статус доступа пользователя"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute('SELECT access_status FROM users WHERE user_id = ?', (user_id,))
+            result = cursor.fetchone()
+            return result['access_status'] if result else 'pending'
+        finally:
+            conn.close()
+    
+    def request_access(self, user_id: int, department: str = None):
+        """Запросить доступ к боту"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                UPDATE users 
+                SET access_status = 'pending', 
+                    requested_at = CURRENT_TIMESTAMP,
+                    department = ?
+                WHERE user_id = ?
+            ''', (department, user_id))
+            conn.commit()
+        finally:
+            conn.close()
+    
+    def approve_user(self, user_id: int):
+        """Одобрить пользователя"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                UPDATE users 
+                SET access_status = 'approved',
+                    approved_at = CURRENT_TIMESTAMP
+                WHERE user_id = ?
+            ''', (user_id,))
+            conn.commit()
+        finally:
+            conn.close()
+    
+    def reject_user(self, user_id: int):
+        """Отклонить пользователя"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute('UPDATE users SET access_status = \'rejected\' WHERE user_id = ?', (user_id,))
+            conn.commit()
+        finally:
+            conn.close()
+    
+    def get_pending_users(self):
+        """Получить список пользователей ожидающих одобрения"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                SELECT user_id, username, first_name, last_name, department, requested_at
+                FROM users 
+                WHERE access_status = 'pending'
+                ORDER BY requested_at DESC
+            ''')
+            return [dict(row) for row in cursor.fetchall()]
+        finally:
+            conn.close()
+    
+    def get_all_users_list(self):
+        """Получить список всех пользователей с их статусами"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                SELECT user_id, username, first_name, last_name, access_status, department, created_at
+                FROM users 
+                ORDER BY created_at DESC
+            ''')
+            return [dict(row) for row in cursor.fetchall()]
         finally:
             conn.close()
     

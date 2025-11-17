@@ -111,10 +111,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Команда /start - регистрация пользователя"""
     user = update.effective_user
     
-    # Получаем язык пользователя или используем русский по умолчанию
+    # Добавляем пользователя в БД если его нет
     lang = db.get_user_language(user.id)
-    
-    # Добавляем пользователя в БД
     db.add_user(
         user_id=user.id,
         username=user.username or "",
@@ -122,6 +120,19 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         last_name=user.last_name or "",
         language=lang
     )
+    
+    # Проверяем доступ
+    access_status = db.get_user_access_status(user.id)
+    
+    # Админ всегда имеет доступ
+    if user.id == int(config.ADMIN_ID):
+        access_status = 'approved'
+        db.approve_user(user.id)
+    
+    # Если доступ не одобрен - показываем форму запроса
+    if access_status != 'approved':
+        from access_control import show_access_request_form
+        return await show_access_request_form(update, context)
     
     # Формируем приветственное сообщение на языке пользователя
     welcome_text = f"""
