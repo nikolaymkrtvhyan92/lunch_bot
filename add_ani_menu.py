@@ -98,7 +98,7 @@ def add_ani_menu():
                 category=item['category'],
                 price=item['price']
             )
-            print(f"✅ {item['category']:20} | {item['name']:30} | {item['price']} ₽")
+            print(f"✅ {item['category']:20} | {item['name']:30} | {item['price']} ֏")
             added += 1
         except Exception as e:
             print(f"❌ Ошибка при добавлении {item['name']}: {e}")

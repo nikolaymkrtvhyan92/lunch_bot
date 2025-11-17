@@ -317,7 +317,7 @@ async def menu_item_category(update: Update, context: ContextTypes.DEFAULT_TYPE)
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     await update.message.reply_text(
-        f"✅ Блюдо <b>{item_name}</b> ({item_price} ₽) успешно добавлено!\n\n"
+        f"✅ Блюдо <b>{item_name}</b> ({item_price} ֏) успешно добавлено!\n\n"
         f"Хотите добавить еще блюдо?",
         reply_markup=reply_markup,
         parse_mode='HTML'
@@ -439,9 +439,9 @@ async def send_order_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
         if any(o['menu_item_id'] == item['menu_item_id'] for o in restaurant_orders):
             total = item['price'] * item['total_quantity']
             total_sum += total
-            order_text += f"<b>{item['name']}</b> x{item['total_quantity']} = {int(total)}₽\n"
+            order_text += f"<b>{item['name']}</b> x{item['total_quantity']} = {int(total)}֏\n"
     
-    order_text += f"\n💰 <b>ИТОГО: {int(total_sum)}₽</b>\n\n"
+    order_text += f"\n💰 <b>ИТОГО: {int(total_sum)}֏</b>\n\n"
     
     order_text += "<b>━━━ ПО УЧАСТНИКАМ ━━━</b>\n\n"
     
@@ -459,8 +459,8 @@ async def send_order_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
         for order in orders:
             price = order['price'] * order['quantity']
             user_total += price
-            order_text += f"  • {order['dish_name']} x{order['quantity']} — {int(price)}₽\n"
-        order_text += f"  💵 Сумма: {int(user_total)}₽\n\n"
+            order_text += f"  • {order['dish_name']} x{order['quantity']} — {int(price)}֏\n"
+        order_text += f"  💵 Сумма: {int(user_total)}֏\n\n"
     
     # Отправка менеджеру через Telegram (если есть manager_telegram_id)
     manager_id = restaurant.get('manager_telegram_id')

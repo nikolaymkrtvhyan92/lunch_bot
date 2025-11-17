@@ -96,13 +96,13 @@ def format_menu_beautiful(restaurant_name: str, restaurant_emoji: str, menu_item
                 price = f"{int(item['price'])}" if item['price'] else "—"
                 # Форматируем цену красиво
                 text += f"│  • {item['name']}\n"
-                text += f"│    💰 <b>{price} ₽</b>\n"
+                text += f"│    💰 <b>{price} ֏</b>\n"
             
             text += f"└{'─' * 25}\n\n"
         else:
             text += f"{category_emoji} <b>{category}</b>\n"
             for item in items:
-                price = f"{int(item['price'])}₽" if item['price'] else ""
+                price = f"{int(item['price'])} ֏" if item['price'] else ""
                 text += f"  • {item['name']} — {price}\n"
             text += "\n"
     
@@ -707,7 +707,7 @@ async def show_category_callback(update: Update, context: ContextTypes.DEFAULT_T
     # Создаем кнопки для каждого блюда
     keyboard = []
     for item in category_items:
-        price = f"{item['price']:.0f} ₽" if item['price'] else ""
+        price = f"{item['price']:.0f} ֏" if item['price'] else ""
         button_text = f"{item['name']} - {price}"
         # Ограничиваем длину текста кнопки
         if len(button_text) > 60:
@@ -796,10 +796,10 @@ async def my_orders_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
         order_text += f"• <b>{order['name']}</b>\n"
         if order['description']:
             order_text += f"  <i>{order['description'][:50]}...</i>\n"
-        order_text += f"  {order['quantity']} x {order['price']:.0f} ₽ = {price:.0f} ₽\n"
+        order_text += f"  {order['quantity']} x {order['price']:.0f} ֏ = {price:.0f} ֏\n"
         order_text += f"  📍 {order['restaurant_name']}\n\n"
     
-    order_text += f"<b>Итого: {total:.0f} ₽</b>"
+    order_text += f"<b>Итого: {total:.0f} ֏</b>"
     
     # Создаем кнопки для удаления блюд
     keyboard = []
@@ -1081,7 +1081,7 @@ async def order_from_restaurant_callback(update: Update, context: ContextTypes.D
     
     for category, items in sorted_categories:
         for item in items:
-            price = f"{int(item['price'])}₽" if item['price'] else ""
+            price = f"{int(item['price'])}֏" if item['price'] else ""
             keyboard.append([
                 InlineKeyboardButton(
                     f"➕ {item['name']} ({price})",
@@ -1146,9 +1146,9 @@ async def show_cart_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
         for order in orders:
             price = order['price'] * order['quantity']
             total += price
-            text += f"• {order['name']} x{order['quantity']} — {int(price)}₽\n"
+            text += f"• {order['name']} x{order['quantity']} — {int(price)}֏\n"
         
-        text += f"\n💰 <b>Итого: {int(total)}₽</b>"
+        text += f"\n💰 <b>Итого: {int(total)}֏</b>"
         
         keyboard = [
             [InlineKeyboardButton("✅ Завершить заказ", callback_data="finish_order")],
@@ -1186,9 +1186,9 @@ async def finish_order_callback(update: Update, context: ContextTypes.DEFAULT_TY
     for order in orders:
         price = order['price'] * order['quantity']
         total += price
-        text += f"• {order['name']} x{order['quantity']} — {int(price)}₽\n"
+        text += f"• {order['name']} x{order['quantity']} — {int(price)}֏\n"
     
-    text += f"\n💰 <b>Итого: {int(total)}₽</b>\n\n"
+    text += f"\n💰 <b>Итого: {int(total)}֏</b>\n\n"
     text += "Заказ будет отправлен менеджеру ресторана после того,\n"
     text += "как все участники сделают свой выбор.\n\n"
     text += "Используйте /myorder чтобы посмотреть свой заказ."
@@ -1242,10 +1242,10 @@ async def my_order_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for order in orders:
         price = order['price'] * order['quantity']
         total += price
-        text += f"• {order['name']} x{order['quantity']} — {int(price)}₽\n"
+        text += f"• {order['name']} x{order['quantity']} — {int(price)}֏\n"
     
     text += f"\n🏪 Ресторан: <b>{restaurant_name}</b>"
-    text += f"\n💰 <b>Итого: {int(total)}₽</b>"
+    text += f"\n💰 <b>Итого: {int(total)}֏</b>"
     
     await update.message.reply_text(text, parse_mode='HTML')
 
@@ -1381,10 +1381,10 @@ async def show_my_order_callback(update: Update, context: ContextTypes.DEFAULT_T
         for order in orders:
             price = order['price'] * order['quantity']
             total += price
-            text += f"• {order['name']} x{order['quantity']} — {int(price)}₽\n"
+            text += f"• {order['name']} x{order['quantity']} — {int(price)}֏\n"
         
         text += f"\n🏪 Ресторан: <b>{restaurant_name}</b>"
-        text += f"\n💰 <b>Итого: {int(total)}₽</b>"
+        text += f"\n💰 <b>Итого: {int(total)}֏</b>"
         
         keyboard = [
             [InlineKeyboardButton("🗑️ Очистить корзину", callback_data="clear_cart")],
