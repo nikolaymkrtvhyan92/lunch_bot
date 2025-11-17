@@ -31,9 +31,16 @@ class Database:
                 first_name TEXT,
                 last_name TEXT,
                 is_admin INTEGER DEFAULT 0,
+                language TEXT DEFAULT 'ru',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
+        
+        # Миграция: добавление поля language
+        try:
+            cursor.execute("ALTER TABLE users ADD COLUMN language TEXT DEFAULT 'ru'")
+        except sqlite3.OperationalError:
+            pass  # Поле уже существует
         
         # Таблица ресторанов
         cursor.execute('''
@@ -151,15 +158,36 @@ class Database:
     
     # ========== Пользователи ==========
     
-    def add_user(self, user_id: int, username: str, first_name: str, last_name: str = None):
+    def add_user(self, user_id: int, username: str, first_name: str, last_name: str = None, language: str = 'ru'):
         """Добавить пользователя"""
         conn = self.get_connection()
         cursor = conn.cursor()
         try:
             cursor.execute('''
-                INSERT OR REPLACE INTO users (user_id, username, first_name, last_name)
-                VALUES (?, ?, ?, ?)
-            ''', (user_id, username, first_name, last_name))
+                INSERT OR REPLACE INTO users (user_id, username, first_name, last_name, language)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (user_id, username, first_name, last_name, language))
+            conn.commit()
+        finally:
+            conn.close()
+    
+    def get_user_language(self, user_id: int) -> str:
+        """Получить язык пользователя"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute('SELECT language FROM users WHERE user_id = ?', (user_id,))
+            result = cursor.fetchone()
+            return result['language'] if result else 'ru'
+        finally:
+            conn.close()
+    
+    def set_user_language(self, user_id: int, language: str):
+        """Установить язык пользователя"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute('UPDATE users SET language = ? WHERE user_id = ?', (language, user_id))
             conn.commit()
         finally:
             conn.close()

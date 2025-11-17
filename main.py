@@ -40,6 +40,8 @@ from handlers import (
     clear_orders_callback,
     back_to_main_callback,
     back_to_voting_callback,
+    change_language_callback,
+    set_language_callback,
     cancel_command,
     # Новые обработчики системы заказа
     order_from_restaurant_callback,
@@ -175,6 +177,10 @@ def main():
     application.add_handler(CallbackQueryHandler(show_category_callback, pattern=r'^category_\d+_.+$'))
     application.add_handler(CallbackQueryHandler(show_menu_list_callback, pattern=r'^show_menu_list$'))
     application.add_handler(CallbackQueryHandler(back_to_main_callback, pattern=r'^back_to_main$'))
+    
+    # Выбор языка
+    application.add_handler(CallbackQueryHandler(change_language_callback, pattern=r'^change_language$'))
+    application.add_handler(CallbackQueryHandler(set_language_callback, pattern=r'^set_lang_\w+$'))
     
     # Заказы
     application.add_handler(CallbackQueryHandler(add_order_callback, pattern=r'^order_\d+$'))

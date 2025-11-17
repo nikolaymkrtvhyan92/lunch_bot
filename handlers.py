@@ -4,6 +4,7 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from database import Database
+from translations import get_text, get_category_name
 from datetime import datetime
 import config
 
@@ -110,41 +111,47 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Команда /start - регистрация пользователя"""
     user = update.effective_user
     
+    # Получаем язык пользователя или используем русский по умолчанию
+    lang = db.get_user_language(user.id)
+    
     # Добавляем пользователя в БД
     db.add_user(
         user_id=user.id,
         username=user.username or "",
         first_name=user.first_name or "",
-        last_name=user.last_name or ""
+        last_name=user.last_name or "",
+        language=lang
     )
     
+    # Формируем приветственное сообщение на языке пользователя
     welcome_text = f"""
-Привет, Команда Инкубатор! 👋
+{get_text('welcome_title', lang)}
 
-Я помогу организовать совместный обед для вашей команды! 🍽️✨
+{get_text('welcome_text', lang)}
 
-<b>🎯 Что я умею:</b>
-• Голосование за рестораны
-• Показываю меню с ценами  
-• Веду список участников
-• Отправляю напоминания
-• Принимаю заказы блюд
+<b>{get_text('what_i_can', lang)}</b>
+{get_text('feature_voting', lang)}
+{get_text('feature_menu', lang)}
+{get_text('feature_participants', lang)}
+{get_text('feature_reminders', lang)}
+{get_text('feature_orders', lang)}
 
-<b>🚀 Выберите действие:</b>
+<b>{get_text('choose_action', lang)}</b>
 """
     
     # Создаём интерактивное меню
     keyboard = [
-        [InlineKeyboardButton("🍽️ Начать голосование", callback_data="start_lunch")],
-        [InlineKeyboardButton("📋 Меню ресторанов", callback_data="show_menu_list")],
-        [InlineKeyboardButton("📊 Результаты", callback_data="show_results"),
-         InlineKeyboardButton("👥 Участники", callback_data="show_participants")],
-        [InlineKeyboardButton("🛒 Мой заказ", callback_data="show_my_order")],
+        [InlineKeyboardButton(get_text('btn_start_voting', lang), callback_data="start_lunch")],
+        [InlineKeyboardButton(get_text('btn_menu_list', lang), callback_data="show_menu_list")],
+        [InlineKeyboardButton(get_text('btn_results', lang), callback_data="show_results"),
+         InlineKeyboardButton(get_text('btn_participants', lang), callback_data="show_participants")],
+        [InlineKeyboardButton(get_text('btn_my_order', lang), callback_data="show_my_order")],
+        [InlineKeyboardButton(get_text('btn_language', lang), callback_data="change_language")],
     ]
     
     # Добавляем админ панель если это админ
     if user.id == int(config.ADMIN_ID):
-        keyboard.append([InlineKeyboardButton("👑 Админ панель", callback_data="admin_panel")])
+        keyboard.append([InlineKeyboardButton(get_text('btn_admin_panel', lang), callback_data="admin_panel")])
     
     reply_markup = InlineKeyboardMarkup(keyboard)
     
@@ -1445,4 +1452,52 @@ async def admin_panel_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         reply_markup = InlineKeyboardMarkup(keyboard)
         await query.edit_message_text(f"❌ Ошибка: {str(e)[:200]}", reply_markup=reply_markup)
         raise
+
+
+# ========== Выбор языка ==========
+
+async def change_language_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Показать меню выбора языка"""
+    query = update.callback_query
+    await query.answer()
+    
+    user_id = update.effective_user.id
+    lang = db.get_user_language(user_id)
+    
+    text = get_text('choose_language', lang)
+    
+    keyboard = [
+        [InlineKeyboardButton("🇦🇲 Հայերեն (Armenian)", callback_data="set_lang_hy")],
+        [InlineKeyboardButton("🇷🇺 Русский (Russian)", callback_data="set_lang_ru")],
+        [InlineKeyboardButton("🇬🇧 English", callback_data="set_lang_en")],
+        [InlineKeyboardButton(get_text('btn_back', lang), callback_data="back_to_main")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await query.edit_message_text(text, reply_markup=reply_markup)
+
+
+async def set_language_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Установить выбранный язык"""
+    query = update.callback_query
+    
+    # Извлекаем код языка из callback_data (set_lang_ru -> ru)
+    lang_code = query.data.split('_')[2]
+    
+    user_id = update.effective_user.id
+    db.set_user_language(user_id, lang_code)
+    
+    await query.answer(get_text('language_changed', lang_code))
+    
+    # Возвращаемся на главное меню с новым языком
+    await start_command(update, context)
+
+
+async def back_to_main_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Вернуться в главное меню"""
+    query = update.callback_query
+    await query.answer()
+    
+    # Вызываем start_command для показа главного меню
+    await start_command(update, context)
 
