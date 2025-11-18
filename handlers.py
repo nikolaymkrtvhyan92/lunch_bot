@@ -197,6 +197,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def lunch_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Команда /lunch - начать голосование"""
     user_id = update.effective_user.id
+    lang = db.get_user_language(user_id)
     
     # Проверяем, есть ли уже активное голосование
     active_poll = db.get_active_poll()
@@ -213,10 +214,7 @@ async def lunch_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     restaurants = db.get_all_restaurants()
     
     if not restaurants:
-        await update.message.reply_text(
-            "❌ К сожалению, пока нет доступных ресторанов.\n"
-            "Попросите администратора добавить рестораны."
-        )
+        await update.message.reply_text(get_text('no_restaurants_short', lang))
         return
     
     # Создаем клавиатуру с ресторанами
@@ -233,11 +231,11 @@ async def lunch_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # Добавляем кнопки управления (улучшенный порядок)
     keyboard.append([
-        InlineKeyboardButton("👥 Участники", callback_data="show_participants"),
-        InlineKeyboardButton("📊 Результаты", callback_data="show_results")
+        InlineKeyboardButton(get_text('btn_participants', lang), callback_data="show_participants"),
+        InlineKeyboardButton(get_text('btn_results', lang), callback_data="show_results")
     ])
     keyboard.append([
-        InlineKeyboardButton("📋 Меню ресторанов", callback_data="show_menu_list")
+        InlineKeyboardButton(get_text('btn_menu_restaurants', lang), callback_data="show_menu_list")
     ])
     
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -249,11 +247,11 @@ async def lunch_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         restaurant = db.get_restaurant(user_vote)
         if restaurant:
             rest_emoji = restaurant.get('emoji', '🍽️')
-            vote_text = f"\n\n✅ Ваш выбор: {rest_emoji} <b>{restaurant['name']}</b>"
+            vote_text = f"\n\n{get_text('your_choice', lang)} {rest_emoji} <b>{restaurant['name']}</b>"
     
     await update.message.reply_text(
-        f"🍽️ <b>Время выбирать обед!</b>\n\n"
-        f"Куда пойдём сегодня? Голосуйте! 🎯{vote_text}",
+        f"{get_text('voting_time', lang)}\n\n"
+        f"{get_text('where_go', lang)}{vote_text}",
         reply_markup=reply_markup,
         parse_mode='HTML'
     )
@@ -265,16 +263,17 @@ async def vote_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     
     user_id = update.effective_user.id
+    lang = db.get_user_language(user_id)
     restaurant_id = int(query.data.split('_')[1])
     
     # Получаем активное голосование
     poll = db.get_active_poll()
     if not poll:
         keyboard = [[
-            InlineKeyboardButton("🏠 К голосованию", callback_data="back_to_voting")
+            InlineKeyboardButton(get_text('back_to_voting', lang), callback_data="back_to_voting")
         ]]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text("❌ Голосование не найдено. Начните новое: /lunch", reply_markup=reply_markup)
+        await query.edit_message_text(get_text('voting_not_found', lang), reply_markup=reply_markup)
         return
     
     poll_id = poll['id']
@@ -292,16 +291,15 @@ async def vote_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Добавляем кнопки для перехода к результатам или возврата к голосованию
     keyboard = [
         [
-            InlineKeyboardButton("📊 Результаты", callback_data="show_results"),
-            InlineKeyboardButton("👥 Участники", callback_data="show_participants")
+            InlineKeyboardButton(get_text('btn_results', lang), callback_data="show_results"),
+            InlineKeyboardButton(get_text('btn_participants', lang), callback_data="show_participants")
         ],
-        [InlineKeyboardButton("🏠 К голосованию", callback_data="back_to_voting")]
+        [InlineKeyboardButton(get_text('back_to_voting', lang), callback_data="back_to_voting")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     await query.edit_message_text(
-        f"✅ Отлично! Вы выбрали {rest_emoji} <b>{restaurant['name']}</b>\n\n"
-        f"Вы автоматически записаны на обед! 🎉",
+        get_text('vote_success', lang, emoji=rest_emoji, name=restaurant['name']),
         parse_mode='HTML',
         reply_markup=reply_markup
     )
