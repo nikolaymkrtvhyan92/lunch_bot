@@ -9,71 +9,71 @@ logger = logging.getLogger(__name__)
 def seed_ani_menu(db, restaurant_id):
     """Добавить меню для ресторана Ани (с реальными фото блюд)"""
     
-    # Реальные фото блюд с Unsplash (качественные изображения еды)
+    # Качественные фото армянской и кавказской кухни
     photos = {
-        # Холодные закуски
-        'Ассорти мясное': 'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=800',
-        'Ассорти рыбное': 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=800',
-        'Долма': 'https://images.unsplash.com/photo-1625937286074-9ca519d5d9df?w=800',
-        'Язык отварной': 'https://images.unsplash.com/photo-1603073203011-60ef5b2ceb80?w=800',
-        'Овощи свежие': 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800',
-        'Сыр-тесто-зелень': 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?w=800',
+        # Холодные закуски - армянские традиционные блюда
+        'Ассорти мясное': 'https://images.pexels.com/photos/1639562/pexels-photo-1639562.jpeg?auto=compress&w=800',
+        'Ассорти рыбное': 'https://images.pexels.com/photos/262959/pexels-photo-262959.jpeg?auto=compress&w=800',
+        'Долма': 'https://images.pexels.com/photos/6275169/pexels-photo-6275169.jpeg?auto=compress&w=800',
+        'Язык отварной': 'https://images.pexels.com/photos/1640772/pexels-photo-1640772.jpeg?auto=compress&w=800',
+        'Овощи свежие': 'https://images.pexels.com/photos/1300972/pexels-photo-1300972.jpeg?auto=compress&w=800',
+        'Сыр-тесто-зелень': 'https://images.pexels.com/photos/821365/pexels-photo-821365.jpeg?auto=compress&w=800',
         
-        # Горячие закуски
-        'Хинкали (5 шт)': 'https://images.unsplash.com/photo-1626200419199-391ae4be7a41?w=800',
-        'Хачапури по-аджарски': 'https://images.unsplash.com/photo-1619740455993-9e5c6e0eb0e7?w=800',
-        'Хачапури по-мегрельски': 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800',
-        'Люля-кебаб': 'https://images.unsplash.com/photo-1603360946369-dc9bb6258143?w=800',
+        # Горячие закуски - грузинская/армянская кухня
+        'Хинкали (5 шт)': 'https://images.pexels.com/photos/5175524/pexels-photo-5175524.jpeg?auto=compress&w=800',
+        'Хачапури по-аджарски': 'https://images.pexels.com/photos/4394298/pexels-photo-4394298.jpeg?auto=compress&w=800',
+        'Хачапури по-мегрельски': 'https://images.pexels.com/photos/4518586/pexels-photo-4518586.jpeg?auto=compress&w=800',
+        'Люля-кебаб': 'https://images.pexels.com/photos/3186654/pexels-photo-3186654.jpeg?auto=compress&w=800',
         
         # Салаты
-        'Греческий салат': 'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=800',
-        'Цезарь с курицей': 'https://images.unsplash.com/photo-1546793665-c74683f339c1?w=800',
-        'Цезарь с креветками': 'https://images.unsplash.com/photo-1551248429-40975aa4de74?w=800',
-        'Оливье': 'https://images.unsplash.com/photo-1505253716362-afaea1d3d1af?w=800',
-        'Крабовый салат': 'https://images.unsplash.com/photo-1607532941433-304659e8198a?w=800',
-        'Винегрет': 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800',
+        'Греческий салат': 'https://images.pexels.com/photos/1059905/pexels-photo-1059905.jpeg?auto=compress&w=800',
+        'Цезарь с курицей': 'https://images.pexels.com/photos/2702674/pexels-photo-2702674.jpeg?auto=compress&w=800',
+        'Цезарь с креветками': 'https://images.pexels.com/photos/262047/pexels-photo-262047.jpeg?auto=compress&w=800',
+        'Оливье': 'https://images.pexels.com/photos/3026808/pexels-photo-3026808.jpeg?auto=compress&w=800',
+        'Крабовый салат': 'https://images.pexels.com/photos/1833349/pexels-photo-1833349.jpeg?auto=compress&w=800',
+        'Винегрет': 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&w=800',
         
-        # Супы
-        'Харчо': 'https://images.unsplash.com/photo-1547592166-23ac45744acd?w=800',
-        'Бульон куриный': 'https://images.unsplash.com/photo-1588566565463-180a5b2090d2?w=800',
-        'Суп-лапша': 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=800',
-        'Окрошка': 'https://images.unsplash.com/photo-1547592180-85f173990554?w=800',
+        # Супы - традиционные кавказские
+        'Харчо': 'https://images.pexels.com/photos/539451/pexels-photo-539451.jpeg?auto=compress&w=800',
+        'Бульон куриный': 'https://images.pexels.com/photos/1640775/pexels-photo-1640775.jpeg?auto=compress&w=800',
+        'Суп-лапша': 'https://images.pexels.com/photos/1703272/pexels-photo-1703272.jpeg?auto=compress&w=800',
+        'Окрошка': 'https://images.pexels.com/photos/8478104/pexels-photo-8478104.jpeg?auto=compress&w=800',
         
-        # Шашлыки
-        'Шашлык из свинины': 'https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?w=800',
-        'Шашлык из курицы': 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800',
-        'Шашлык из баранины': 'https://images.unsplash.com/photo-1603360946369-dc9bb6258143?w=800',
-        'Шашлык из говядины': 'https://images.unsplash.com/photo-1558030006-450675393462?w=800',
-        'Люля-кебаб из баранины': 'https://images.unsplash.com/photo-1603360946369-dc9bb6258143?w=800',
-        'Крылышки куриные': 'https://images.unsplash.com/photo-1527477396000-e27163b481c2?w=800',
+        # Шашлыки - кавказская традиция
+        'Шашлык из свинины': 'https://images.pexels.com/photos/8697347/pexels-photo-8697347.jpeg?auto=compress&w=800',
+        'Шашлык из курицы': 'https://images.pexels.com/photos/8697427/pexels-photo-8697427.jpeg?auto=compress&w=800',
+        'Шашлык из баранины': 'https://images.pexels.com/photos/5175519/pexels-photo-5175519.jpeg?auto=compress&w=800',
+        'Шашлык из говядины': 'https://images.pexels.com/photos/3186654/pexels-photo-3186654.jpeg?auto=compress&w=800',
+        'Люля-кебаб из баранины': 'https://images.pexels.com/photos/5175521/pexels-photo-5175521.jpeg?auto=compress&w=800',
+        'Крылышки куриные': 'https://images.pexels.com/photos/60616/fried-chicken-chicken-fried-crunchy-60616.jpeg?auto=compress&w=800',
         
         # Горячие блюда
-        'Стейк из свинины': 'https://images.unsplash.com/photo-1588168333986-5078d3ae3976?w=800',
-        'Стейк из говядины': 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=800',
-        'Куриное филе': 'https://images.unsplash.com/photo-1598103442097-8b74394b95c6?w=800',
-        'Рыба на гриле': 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=800',
-        'Картофель фри': 'https://images.unsplash.com/photo-1576107232684-1279f390859f?w=800',
-        'Овощи гриль': 'https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?w=800',
+        'Стейк из свинины': 'https://images.pexels.com/photos/769289/pexels-photo-769289.jpeg?auto=compress&w=800',
+        'Стейк из говядины': 'https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg?auto=compress&w=800',
+        'Куриное филе': 'https://images.pexels.com/photos/2338407/pexels-photo-2338407.jpeg?auto=compress&w=800',
+        'Рыба на гриле': 'https://images.pexels.com/photos/725997/pexels-photo-725997.jpeg?auto=compress&w=800',
+        'Картофель фри': 'https://images.pexels.com/photos/1893556/pexels-photo-1893556.jpeg?auto=compress&w=800',
+        'Овощи гриль': 'https://images.pexels.com/photos/1640770/pexels-photo-1640770.jpeg?auto=compress&w=800',
         
         # Гарниры
-        'Картофель по-деревенски': 'https://images.unsplash.com/photo-1518013431117-eb1465fa5752?w=800',
-        'Рис отварной': 'https://images.unsplash.com/photo-1516684732162-798a0062be99?w=800',
-        'Пюре картофельное': 'https://images.unsplash.com/photo-1585032226651-759b368d7246?w=800',
-        'Гречка': 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=800',
+        'Картофель по-деревенски': 'https://images.pexels.com/photos/2802527/pexels-photo-2802527.jpeg?auto=compress&w=800',
+        'Рис отварной': 'https://images.pexels.com/photos/803963/pexels-photo-803963.jpeg?auto=compress&w=800',
+        'Пюре картофельное': 'https://images.pexels.com/photos/5949888/pexels-photo-5949888.jpeg?auto=compress&w=800',
+        'Гречка': 'https://images.pexels.com/photos/3338497/pexels-photo-3338497.jpeg?auto=compress&w=800',
         
         # Десерты
-        'Чизкейк': 'https://images.unsplash.com/photo-1533134486753-c833f0ed4866?w=800',
-        'Тирамису': 'https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=800',
-        'Наполеон': 'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=800',
-        'Мороженое': 'https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=800',
+        'Чизкейк': 'https://images.pexels.com/photos/273773/pexels-photo-273773.jpeg?auto=compress&w=800',
+        'Тирамису': 'https://images.pexels.com/photos/4109998/pexels-photo-4109998.jpeg?auto=compress&w=800',
+        'Наполеон': 'https://images.pexels.com/photos/1055270/pexels-photo-1055270.jpeg?auto=compress&w=800',
+        'Мороженое': 'https://images.pexels.com/photos/1352278/pexels-photo-1352278.jpeg?auto=compress&w=800',
         
         # Напитки
-        'Чай черный/зеленый': 'https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?w=800',
-        'Кофе американо': 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=800',
-        'Кофе капучино': 'https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=800',
-        'Сок': 'https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=800',
-        'Вода минеральная': 'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=800',
-        'Лимонад': 'https://images.unsplash.com/photo-1523677011781-c91d1bbe2f9d?w=800',
+        'Чай черный/зеленый': 'https://images.pexels.com/photos/230477/pexels-photo-230477.jpeg?auto=compress&w=800',
+        'Кофе американо': 'https://images.pexels.com/photos/312418/pexels-photo-312418.jpeg?auto=compress&w=800',
+        'Кофе капучино': 'https://images.pexels.com/photos/302899/pexels-photo-302899.jpeg?auto=compress&w=800',
+        'Сок': 'https://images.pexels.com/photos/96974/pexels-photo-96974.jpeg?auto=compress&w=800',
+        'Вода минеральная': 'https://images.pexels.com/photos/327090/pexels-photo-327090.jpeg?auto=compress&w=800',
+        'Лимонад': 'https://images.pexels.com/photos/1233319/pexels-photo-1233319.jpeg?auto=compress&w=800',
     }
     
     menu_items = [
