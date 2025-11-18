@@ -534,7 +534,7 @@ async def show_results_category_callback(update: Update, context: ContextTypes.D
     # Отправляем заголовок категории
     header_text = f"{rest_emoji} <b>{get_text('menu_restaurant', lang)} \"{restaurant['name']}\"</b>\n"
     header_text += f"{category_emoji} <b>{category_name}</b>\n\n"
-    header_text += f"📋 {len(category_items)} блюд в категории"
+    header_text += get_text('dishes_in_category', lang, count=len(category_items))
     
     await update.effective_chat.send_message(header_text, parse_mode='HTML')
     
@@ -560,7 +560,7 @@ async def show_results_category_callback(update: Update, context: ContextTypes.D
     final_markup = InlineKeyboardMarkup(final_keyboard)
     
     await update.effective_chat.send_message(
-        f"✅ Показано {len(category_items)} блюд",
+        get_text('dishes_shown', lang, count=len(category_items)),
         reply_markup=final_markup
     )
 
@@ -602,7 +602,7 @@ async def send_dish_card(chat_id, item, restaurant_id, index, total, category, l
     # Добавляем навигацию если не последнее блюдо
     if index < total:
         keyboard.append([
-            InlineKeyboardButton("⏭️ Следующее блюдо", callback_data=f"next_dish_{index}")
+            InlineKeyboardButton(get_text('next_dish', lang), callback_data=f"next_dish_{index}")
         ])
     
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -623,7 +623,7 @@ async def send_dish_card(chat_id, item, restaurant_id, index, total, category, l
             # Если ошибка с фото, отправляем просто текст
             await context.bot.send_message(
                 chat_id=chat_id,
-                text=f"📸 [Фото недоступно]\n\n{card_text}",
+                text=f"{get_text('photo_unavailable', lang)}\n\n{card_text}",
                 parse_mode='HTML',
                 reply_markup=reply_markup
             )
@@ -711,7 +711,7 @@ async def participants_command(update: Update, context: ContextTypes.DEFAULT_TYP
         await update.message.reply_text(f"👥 {get_text('no_participants', lang)}")
         return
     
-    participants_text = "👥 <b>Участники обеда:</b>\n\n"
+    participants_text = f"👥 <b>{get_text('participants_list', lang)}</b>\n\n"
     
     for idx, participant in enumerate(participants, 1):
         name = participant['first_name']
@@ -720,7 +720,7 @@ async def participants_command(update: Update, context: ContextTypes.DEFAULT_TYP
         username = f" (@{participant['username']})" if participant['username'] else ""
         participants_text += f"{idx}. {name}{username}\n"
     
-    participants_text += f"\n<b>Всего: {len(participants)} человек</b>"
+    participants_text += f"\n<b>{get_text('total', lang)} {len(participants)}</b>"
     
     await update.message.reply_text(participants_text, parse_mode='HTML')
 
@@ -822,7 +822,7 @@ async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     await update.message.reply_text(
-        "📋 <b>Выберите ресторан для просмотра меню:</b>",
+        get_text('select_restaurant_menu', lang),
         reply_markup=reply_markup,
         parse_mode='HTML'
     )
