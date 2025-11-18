@@ -203,14 +203,29 @@ class Database:
     # ========== Пользователи ==========
     
     def add_user(self, user_id: int, username: str, first_name: str, last_name: str = None, language: str = 'ru'):
-        """Добавить пользователя"""
+        """Добавить или обновить пользователя (БЕЗ изменения access_status)"""
         conn = self.get_connection()
         cursor = conn.cursor()
         try:
-            cursor.execute('''
-                INSERT OR REPLACE INTO users (user_id, username, first_name, last_name, language)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (user_id, username, first_name, last_name, language))
+            # Проверяем существует ли пользователь
+            cursor.execute('SELECT user_id FROM users WHERE user_id = ?', (user_id,))
+            exists = cursor.fetchone()
+            
+            if exists:
+                # Пользователь существует - обновляем только базовые данные
+                # НЕ трогаем access_status, approved_at, department!
+                cursor.execute('''
+                    UPDATE users 
+                    SET username = ?, first_name = ?, last_name = ?, language = ?
+                    WHERE user_id = ?
+                ''', (username, first_name, last_name, language, user_id))
+            else:
+                # Новый пользователь - создаём с дефолтным access_status
+                cursor.execute('''
+                    INSERT INTO users (user_id, username, first_name, last_name, language)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (user_id, username, first_name, last_name, language))
+            
             conn.commit()
         finally:
             conn.close()
