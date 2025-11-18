@@ -1370,15 +1370,8 @@ async def add_item_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Добавляем в корзину (quantity=1)
     db.add_order(poll_id, user_id, menu_item_id, quantity=1)
     
-    # Возвращаемся к той же категории
-    if restaurant_id and category:
-        # Обновляем callback_data чтобы вернуться к категории
-        context.user_data['last_category'] = category
-        context.user_data['last_restaurant'] = restaurant_id
-        
-        # Симулируем нажатие кнопки категории
-        query.data = f"order_cat_{restaurant_id}_{category}"
-        await show_category_dishes_callback(update, context)
+    # Показываем уведомление
+    await query.answer("✅ Добавлено в корзину!", show_alert=False)
 
 
 async def show_cart_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
