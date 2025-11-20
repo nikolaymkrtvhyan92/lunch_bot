@@ -218,6 +218,11 @@ TRANSLATIONS = {
         "en": "❌ Restaurant {name} doesn't have a menu yet.",
         "hy": "❌ {name} ռեստորանում դեռ մենյու չկա:"
     },
+    "add_to_cart": {
+        "ru": "Добавить в корзину",
+        "en": "Add to cart",
+        "hy": "Ավելացնել զամբյուղ"
+    },
     "added_to_cart": {
         "ru": "✅ Добавлено в корзину!",
         "en": "✅ Added to cart!",

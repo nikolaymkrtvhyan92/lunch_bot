@@ -592,7 +592,7 @@ async def send_dish_card(chat_id, item, restaurant_id, index, total, category, l
     # Кнопки
     keyboard = [
         [InlineKeyboardButton(
-            f"➕ {get_text('added_to_cart', lang).replace('✅ ', '')}",
+            f"➕ {get_text('add_to_cart', lang)}",
             callback_data=f"add_item_{restaurant_id}_{item['id']}_{category}"
         )]
     ]
