@@ -553,7 +553,11 @@ async def show_results_category_callback(update: Update, context: ContextTypes.D
     final_keyboard = [
         [InlineKeyboardButton(get_text('back_to_categories', lang), callback_data="show_results")],
         [InlineKeyboardButton(get_text('btn_select_dishes', lang), callback_data=f"order_from_{restaurant_id}")],
-        [InlineKeyboardButton(get_text('back_to_voting', lang), callback_data="back_to_voting")]
+        [
+            InlineKeyboardButton(get_text('btn_participants', lang), callback_data="show_participants"),
+            InlineKeyboardButton(get_text('btn_my_order', lang), callback_data="show_my_order")
+        ],
+        [InlineKeyboardButton(get_text('back_to_main', lang), callback_data="back_to_main")]
     ]
     final_markup = InlineKeyboardMarkup(final_keyboard)
     
@@ -1283,6 +1287,7 @@ async def show_category_dishes_callback(update: Update, context: ContextTypes.DE
     category = parts[3]
     
     user_id = update.effective_user.id
+    lang = db.get_user_language(user_id)
     
     poll = db.get_active_poll()
     if not poll:
@@ -1333,6 +1338,13 @@ async def show_category_dishes_callback(update: Update, context: ContextTypes.DE
     keyboard.append([
         InlineKeyboardButton("⬅️ Назад к категориям", callback_data=f"order_from_{restaurant_id}"),
         InlineKeyboardButton("🛒 Корзина", callback_data=f"show_cart_{restaurant_id}")
+    ])
+    keyboard.append([
+        InlineKeyboardButton(get_text('btn_participants', lang), callback_data="show_participants"),
+        InlineKeyboardButton(get_text('btn_results', lang), callback_data="show_results")
+    ])
+    keyboard.append([
+        InlineKeyboardButton(get_text('back_to_main', lang), callback_data="back_to_main")
     ])
     
     reply_markup = InlineKeyboardMarkup(keyboard)
