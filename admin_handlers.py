@@ -10,7 +10,9 @@ db = Database()
 
 # Состояния для ConversationHandler
 (RESTAURANT_NAME, RESTAURANT_DESC, RESTAURANT_ADDRESS, RESTAURANT_PHONE, RESTAURANT_EMOJI,
- MENU_RESTAURANT, MENU_ITEM_NAME, MENU_ITEM_PRICE, MENU_ITEM_DESC, MENU_ITEM_CATEGORY) = range(10)
+ RESTAURANT_MANAGER_ID, RESTAURANT_MANAGER_PHONE,
+ MENU_RESTAURANT, MENU_ITEM_NAME, MENU_ITEM_PRICE, MENU_ITEM_DESC, MENU_ITEM_CATEGORY,
+ SET_MANAGER_RESTAURANT, SET_MANAGER_ID, SET_MANAGER_PHONE) = range(15)
 
 
 def admin_only(func):
@@ -135,33 +137,79 @@ async def restaurant_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def restaurant_emoji(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Получить emoji и сохранить ресторан"""
+    """Получить emoji и перейти к менеджеру"""
     if update.message.text != '/skip':
         context.user_data['restaurant_emoji'] = update.message.text
     else:
         context.user_data['restaurant_emoji'] = '🍽️'
     
-    # Сохраняем ресторан
+    await update.message.reply_text(
+        "👤 <b>Контакты менеджера ресторана</b>\n\n"
+        "Введите Telegram ID менеджера ресторана:\n\n"
+        "💡 <b>Как узнать Telegram ID:</b>\n"
+        "1. Попросите менеджера написать боту @userinfobot\n"
+        "2. Бот покажет его ID (например: 123456789)\n"
+        "3. Введите этот ID здесь\n\n"
+        "(Или отправьте /skip чтобы пропустить)",
+        parse_mode='HTML'
+    )
+    return RESTAURANT_MANAGER_ID
+
+
+async def restaurant_manager_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Получить Telegram ID менеджера"""
+    if update.message.text != '/skip':
+        # Проверяем что это число
+        try:
+            manager_id = int(update.message.text)
+            context.user_data['manager_telegram_id'] = manager_id
+        except ValueError:
+            await update.message.reply_text(
+                "❌ Telegram ID должен быть числом!\n\n"
+                "Попробуйте еще раз или отправьте /skip"
+            )
+            return RESTAURANT_MANAGER_ID
+    else:
+        context.user_data['manager_telegram_id'] = None
+    
+    await update.message.reply_text(
+        "📞 Введите телефон менеджера (например: +374 xx xxx xxx):\n"
+        "(Или отправьте /skip чтобы пропустить)"
+    )
+    return RESTAURANT_MANAGER_PHONE
+
+
+async def restaurant_manager_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Получить телефон менеджера и сохранить ресторан"""
+    if update.message.text != '/skip':
+        context.user_data['manager_phone'] = update.message.text
+    else:
+        context.user_data['manager_phone'] = None
+    
+    # Сохраняем ресторан со всеми данными включая менеджера
     restaurant_id = db.add_restaurant(
         name=context.user_data['restaurant_name'],
         description=context.user_data.get('restaurant_desc'),
         address=context.user_data.get('restaurant_address'),
         phone=context.user_data.get('restaurant_phone'),
-        emoji=context.user_data.get('restaurant_emoji', '🍽️')
+        emoji=context.user_data.get('restaurant_emoji', '🍽️'),
+        manager_telegram_id=context.user_data.get('manager_telegram_id'),
+        manager_phone=context.user_data.get('manager_phone')
     )
     
     restaurant_name = context.user_data['restaurant_name']
     restaurant_emoji = context.user_data.get('restaurant_emoji', '🍽️')
+    manager_id = context.user_data.get('manager_telegram_id')
     
     # Очищаем данные
     context.user_data.clear()
     
-    await update.message.reply_text(
-        f"✅ Ресторан {restaurant_emoji} <b>{restaurant_name}</b> успешно добавлен!\n\n"
-        f"Теперь вы можете добавить меню командой:\n"
-        f"/add_menu",
-        parse_mode='HTML'
-    )
+    success_text = f"✅ Ресторан {restaurant_emoji} <b>{restaurant_name}</b> успешно добавлен!\n\n"
+    if manager_id:
+        success_text += f"👤 Менеджер: {manager_id}\n\n"
+    success_text += "Теперь вы можете добавить меню командой:\n/add_menu"
+    
+    await update.message.reply_text(success_text, parse_mode='HTML')
     
     return ConversationHandler.END
 
@@ -379,6 +427,129 @@ async def admin_users_callback(update: Update, context: ContextTypes.DEFAULT_TYP
 
 async def cancel_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Отмена операции"""
+    context.user_data.clear()
+    await update.message.reply_text("❌ Операция отменена.")
+    return ConversationHandler.END
+
+
+# ========== Установка/редактирование менеджера ресторана ==========
+
+@admin_only
+async def set_manager_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Команда /set_manager - установить менеджера для ресторана"""
+    restaurants = db.get_all_restaurants()
+    
+    if not restaurants:
+        await update.message.reply_text("❌ Нет доступных ресторанов. Сначала добавьте ресторан командой /add_restaurant")
+        return ConversationHandler.END
+    
+    # Создаём кнопки с ресторанами
+    keyboard = []
+    for rest in restaurants:
+        emoji = rest.get('emoji', '🍽️')
+        keyboard.append([InlineKeyboardButton(
+            f"{emoji} {rest['name']}", 
+            callback_data=f"setmgr_{rest['id']}"
+        )])
+    
+    keyboard.append([InlineKeyboardButton("❌ Отмена", callback_data="cancel_setmgr")])
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await update.message.reply_text(
+        "👤 <b>Установка менеджера ресторана</b>\n\n"
+        "Выберите ресторан:",
+        parse_mode='HTML',
+        reply_markup=reply_markup
+    )
+    return SET_MANAGER_RESTAURANT
+
+
+async def set_manager_restaurant_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Выбор ресторана для установки менеджера"""
+    query = update.callback_query
+    await query.answer()
+    
+    if query.data == "cancel_setmgr":
+        await query.edit_message_text("❌ Операция отменена.")
+        return ConversationHandler.END
+    
+    # Получаем ID ресторана
+    restaurant_id = int(query.data.split('_')[1])
+    context.user_data['set_manager_restaurant_id'] = restaurant_id
+    
+    restaurant = db.get_restaurant(restaurant_id)
+    emoji = restaurant.get('emoji', '🍽️')
+    
+    # Показываем текущего менеджера если есть
+    current_manager_text = ""
+    if restaurant.get('manager_telegram_id'):
+        current_manager_text = f"\n📱 <b>Текущий менеджер:</b> {restaurant['manager_telegram_id']}"
+        if restaurant.get('manager_phone'):
+            current_manager_text += f"\n📞 Телефон: {restaurant['manager_phone']}"
+    
+    await query.edit_message_text(
+        f"👤 <b>Установка менеджера для {emoji} {restaurant['name']}</b>{current_manager_text}\n\n"
+        "Введите Telegram ID менеджера:\n\n"
+        "💡 <b>Как узнать Telegram ID:</b>\n"
+        "1. Попросите менеджера написать боту @userinfobot\n"
+        "2. Бот покажет его ID (например: 123456789)\n"
+        "3. Введите этот ID здесь\n\n"
+        "(Отправьте /cancel для отмены)",
+        parse_mode='HTML'
+    )
+    return SET_MANAGER_ID
+
+
+async def set_manager_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Получить Telegram ID менеджера"""
+    # Проверяем что это число
+    try:
+        manager_id = int(update.message.text)
+        context.user_data['set_manager_id'] = manager_id
+    except ValueError:
+        await update.message.reply_text(
+            "❌ Telegram ID должен быть числом!\n\n"
+            "Попробуйте еще раз или отправьте /cancel"
+        )
+        return SET_MANAGER_ID
+    
+    await update.message.reply_text(
+        "📞 Введите телефон менеджера (например: +374 xx xxx xxx):\n"
+        "(Или отправьте /skip чтобы пропустить)"
+    )
+    return SET_MANAGER_PHONE
+
+
+async def set_manager_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Получить телефон менеджера и сохранить"""
+    manager_phone = None
+    if update.message.text != '/skip':
+        manager_phone = update.message.text
+    
+    restaurant_id = context.user_data['set_manager_restaurant_id']
+    manager_id = context.user_data['set_manager_id']
+    
+    # Обновляем менеджера ресторана
+    db.set_restaurant_manager(restaurant_id, manager_id, manager_phone)
+    
+    restaurant = db.get_restaurant(restaurant_id)
+    emoji = restaurant.get('emoji', '🍽️')
+    
+    success_text = f"✅ Менеджер для {emoji} <b>{restaurant['name']}</b> установлен!\n\n"
+    success_text += f"👤 Telegram ID: {manager_id}\n"
+    if manager_phone:
+        success_text += f"📞 Телефон: {manager_phone}"
+    
+    # Очищаем данные
+    context.user_data.clear()
+    
+    await update.message.reply_text(success_text, parse_mode='HTML')
+    
+    return ConversationHandler.END
+
+
+async def cancel_set_manager(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Отмена установки менеджера"""
     context.user_data.clear()
     await update.message.reply_text("❌ Операция отменена.")
     return ConversationHandler.END

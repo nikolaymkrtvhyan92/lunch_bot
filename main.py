@@ -66,6 +66,8 @@ from admin_handlers import (
     restaurant_address,
     restaurant_phone,
     restaurant_emoji,
+    restaurant_manager_id,
+    restaurant_manager_phone,
     list_restaurants_command,
     add_menu_command,
     menu_restaurant_selected,
@@ -79,16 +81,26 @@ from admin_handlers import (
     send_order_command,
     confirm_order_callback,
     reject_order_callback,
+    set_manager_command,
+    set_manager_restaurant_callback,
+    set_manager_id,
+    set_manager_phone,
+    cancel_set_manager,
     RESTAURANT_NAME,
     RESTAURANT_DESC,
     RESTAURANT_ADDRESS,
     RESTAURANT_PHONE,
     RESTAURANT_EMOJI,
+    RESTAURANT_MANAGER_ID,
+    RESTAURANT_MANAGER_PHONE,
     MENU_RESTAURANT,
     MENU_ITEM_NAME,
     MENU_ITEM_PRICE,
     MENU_ITEM_DESC,
-    MENU_ITEM_CATEGORY
+    MENU_ITEM_CATEGORY,
+    SET_MANAGER_RESTAURANT,
+    SET_MANAGER_ID,
+    SET_MANAGER_PHONE
 )
 
 # Импортируем систему контроля доступа
@@ -181,6 +193,8 @@ def main():
             RESTAURANT_ADDRESS: [MessageHandler(filters.TEXT, restaurant_address)],
             RESTAURANT_PHONE: [MessageHandler(filters.TEXT, restaurant_phone)],
             RESTAURANT_EMOJI: [MessageHandler(filters.TEXT, restaurant_emoji)],
+            RESTAURANT_MANAGER_ID: [MessageHandler(filters.TEXT, restaurant_manager_id)],
+            RESTAURANT_MANAGER_PHONE: [MessageHandler(filters.TEXT, restaurant_manager_phone)],
         },
         fallbacks=[CommandHandler("cancel", cancel_admin)],
     )
@@ -199,6 +213,18 @@ def main():
         fallbacks=[CommandHandler("cancel", cancel_admin)],
     )
     application.add_handler(add_menu_handler)
+    
+    # Установка менеджера ресторана
+    set_manager_handler = ConversationHandler(
+        entry_points=[CommandHandler("set_manager", set_manager_command)],
+        states={
+            SET_MANAGER_RESTAURANT: [CallbackQueryHandler(set_manager_restaurant_callback, pattern=r'^(setmgr_\d+|cancel_setmgr)$')],
+            SET_MANAGER_ID: [MessageHandler(filters.TEXT & ~filters.COMMAND, set_manager_id)],
+            SET_MANAGER_PHONE: [MessageHandler(filters.TEXT, set_manager_phone)],
+        },
+        fallbacks=[CommandHandler("cancel", cancel_set_manager)],
+    )
+    application.add_handler(set_manager_handler)
     
     # ========== Callback handlers ==========
     

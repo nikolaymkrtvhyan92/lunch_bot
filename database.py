@@ -413,7 +413,8 @@ class Database:
             conn.close()
     
     def update_restaurant(self, restaurant_id: int, name: str = None, description: str = None, 
-                         address: str = None, phone: str = None):
+                         address: str = None, phone: str = None, manager_telegram_id: int = None,
+                         manager_phone: str = None):
         """Обновить данные ресторана"""
         conn = self.get_connection()
         cursor = conn.cursor()
@@ -432,6 +433,12 @@ class Database:
             if phone is not None:
                 updates.append('phone = ?')
                 params.append(phone)
+            if manager_telegram_id is not None:
+                updates.append('manager_telegram_id = ?')
+                params.append(manager_telegram_id)
+            if manager_phone is not None:
+                updates.append('manager_phone = ?')
+                params.append(manager_phone)
             
             if updates:
                 params.append(restaurant_id)
@@ -441,6 +448,15 @@ class Database:
                 conn.commit()
         finally:
             conn.close()
+    
+    def set_restaurant_manager(self, restaurant_id: int, manager_telegram_id: int, 
+                              manager_phone: str = None):
+        """Установить менеджера для ресторана"""
+        self.update_restaurant(
+            restaurant_id, 
+            manager_telegram_id=manager_telegram_id,
+            manager_phone=manager_phone
+        )
     
     def delete_restaurant(self, restaurant_id: int):
         """Удалить ресторан (деактивировать)"""
