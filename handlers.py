@@ -187,6 +187,9 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 <b>Для администраторов:</b>
 /admin - Управление ресторанами и меню
+/send_order - 📦 Отправить заказ менеджеру ресторана
+/add_user - Добавить пользователя вручную
+/list_users - Посмотреть всех пользователей
 """
     
     await update.message.reply_text(help_text, parse_mode='HTML')
