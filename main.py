@@ -168,6 +168,8 @@ def main():
             REQUEST_DEPARTMENT: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_department)],
         },
         fallbacks=[CallbackQueryHandler(cancel_access_callback, pattern=r'^cancel_access$')],
+        name="access_request_conversation",
+        persistent=False
     )
     application.add_handler(access_request_handler)
     
@@ -197,6 +199,8 @@ def main():
             RESTAURANT_MANAGER_PHONE: [MessageHandler(filters.TEXT, restaurant_manager_phone)],
         },
         fallbacks=[CommandHandler("cancel", cancel_admin)],
+        name="add_restaurant_conversation",
+        persistent=False
     )
     application.add_handler(add_restaurant_handler)
     
@@ -211,6 +215,8 @@ def main():
             MENU_ITEM_CATEGORY: [MessageHandler(filters.TEXT, menu_item_category)],
         },
         fallbacks=[CommandHandler("cancel", cancel_admin)],
+        name="add_menu_conversation",
+        persistent=False
     )
     application.add_handler(add_menu_handler)
     
@@ -223,6 +229,8 @@ def main():
             SET_MANAGER_PHONE: [MessageHandler(filters.TEXT, set_manager_phone)],
         },
         fallbacks=[CommandHandler("cancel", cancel_set_manager)],
+        name="set_manager_conversation",
+        persistent=False
     )
     application.add_handler(set_manager_handler)
     
